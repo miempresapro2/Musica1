@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Cotizador Solar Pro - POS Dinámico</title>
+    <title>Cotizador Solar Pro - POS Dinámico y Manual</title>
     <style>
         :root {
             --primary: #047857;
@@ -49,27 +49,18 @@
         .combo-list li { padding: 12px 0; border-bottom: 1px solid #f1f5f9; display: flex; flex-direction: column; gap: 4px; }
         .combo-list li:last-child { border-bottom: none; }
         
-        /* CORRECCIÓN VISUAL DE DESBORDAMIENTO */
         .row-top { display: flex; justify-content: space-between; align-items: center; gap: 8px; width: 100%; overflow: hidden; }
-        .combo-select { 
-            flex: 1; 
-            min-width: 0; /* Permite que el texto se corte sin romper el borde */
-            text-overflow: ellipsis; 
-            overflow: hidden; 
-            white-space: nowrap; 
-            padding: 8px 4px; 
-            border: 1px solid #99f6e4; 
-            border-radius: 6px; 
-            font-size: 0.85rem; 
-            font-weight: 700; 
-            color: #0f172a; 
-            background-color: #f8fafc; 
-        }
+        .combo-select { flex: 1; min-width: 0; text-overflow: ellipsis; overflow: hidden; white-space: nowrap; padding: 8px 4px; border: 1px solid #99f6e4; border-radius: 6px; font-size: 0.85rem; font-weight: 700; color: #0f172a; background-color: #f8fafc; }
         .combo-select:focus { outline: none; border-color: var(--primary); background: #ecfdf5; }
         .combo-select:disabled { background: #f1f5f9; color: #94a3b8; border-color: #e2e8f0; }
 
         .combo-price { font-weight: bold; color: var(--primary); font-size: 1rem; min-width: 70px; text-align: right; }
-        .combo-qty { color: #475569; font-weight: 600; font-size: 0.85rem; margin-top: 2px; }
+        
+        /* NUEVO: Controles de cantidad editables */
+        .qty-container { display: flex; align-items: center; gap: 6px; font-size: 0.85rem; color: #475569; margin-top: 2px; }
+        .qty-input { width: 45px; padding: 4px; border: 1px solid #94a3b8; border-radius: 4px; text-align: center; font-weight: bold; color: var(--primary); background: white; font-size: 0.85rem;}
+        .qty-input:focus { outline: none; border-color: var(--primary); background: #ecfdf5; }
+        .qty-input:disabled { background: #f1f5f9; color: #94a3b8; border-color: transparent; }
 
         .total-box { margin-top: 15px; padding: 16px; background: #ecfdf5; border-radius: 8px; text-align: right; border: 1px solid var(--primary); }
         .total-box p { margin: 0 0 5px 0; font-size: 0.9rem; color: #475569; }
@@ -92,6 +83,10 @@
             .total-box { border: 2px solid black; background: transparent; }
             .total-box h3, .combo-price, h1, .section-title, .results-header h2 { color: black !important; }
             .combo-select { border: none !important; background: transparent !important; appearance: none; -webkit-appearance: none; padding: 0; font-size: 0.95rem; font-weight: 800; color: black; white-space: normal; overflow: visible; }
+            
+            /* Ajustes para que la casilla de cantidad parezca texto al imprimir */
+            .qty-input { border: none !important; background: transparent !important; padding: 0; width: auto; font-size: 0.85rem; }
+            .qty-input::-webkit-outer-spin-button, .qty-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
         }
     </style>
 </head>
@@ -104,16 +99,16 @@
         <h3 class="section-title">👤 Datos del Cliente</h3>
         <div class="form-group full" style="margin-bottom: 10px;">
             <label>Nombre y Apellido</label>
-            <input type="text" id="clienteNombre" placeholder="Ej. Juan Pérez" oninput="actualizarReporteExportacion()">
+            <input type="text" id="clienteNombre" placeholder="Ej. Juan Pérez" oninput="recalcularFinanzas()">
         </div>
         <div class="form-row">
             <div class="form-group">
                 <label>Cédula/RIF</label>
-                <input type="text" id="clienteCedula" placeholder="Ej. V-12345678" oninput="actualizarReporteExportacion()">
+                <input type="text" id="clienteCedula" placeholder="Ej. V-12345678" oninput="recalcularFinanzas()">
             </div>
             <div class="form-group">
                 <label>Teléfono (WhatsApp)</label>
-                <input type="tel" id="clienteTelefono" placeholder="Ej. 04141234567" oninput="actualizarReporteExportacion()">
+                <input type="tel" id="clienteTelefono" placeholder="Ej. 04141234567" oninput="recalcularFinanzas()">
             </div>
         </div>
     </div>
@@ -177,7 +172,7 @@
                 <div class="date-time" id="fechaEmision">--</div>
             </div>
             
-            <p style="font-size: 0.8rem; color: #64748b; margin-top: -5px; margin-bottom: 15px;">Toca cualquier equipo para ver opciones y ajustar el precio.</p>
+            <p style="font-size: 0.8rem; color: #64748b; margin-top: -5px; margin-bottom: 15px;">Ajusta los equipos o las unidades manualmente si lo deseas.</p>
             <ul class="combo-list" id="listaCombo"></ul>
             
             <div class="total-box">
@@ -198,7 +193,6 @@
     let equipos = [];
     let textoReporteGlobal = "";
     
-    // Variables globales para guardar la matemática requerida en tiempo real
     let reqGlobal = { pico: 0, energia: 0 };
     let comboCantidades = { inv: 1, bat: 1, pan: 1, ctrl: 1 };
 
@@ -324,224 +318,221 @@
         let fechaActual = new Date();
         document.getElementById('fechaEmision').innerHTML = `<strong>Fecha:</strong> ${fechaActual.toLocaleDateString('es-VE')}<br><strong>Hora:</strong> ${fechaActual.toLocaleTimeString('es-VE', { hour: '2-digit', minute: '2-digit' })}`;
 
-        // BÚSQUEDA INICIAL DEL MEJOR EQUIPO POR DEFECTO
-        let picoRequerido = tPico * 1.25;
-        let invIdx = DB_INVERSORES.findIndex(inv => inv.w >= picoRequerido);
-        if(invIdx === -1) invIdx = DB_INVERSORES.length - 1;
-        let sysV = DB_INVERSORES[invIdx].v;
-        
-        let factorDescarga = tEnergia < 1000 ? 0.8 : 0.5; 
-        let whRequeridos = tEnergia / factorDescarga;
-        let ahRequeridosSistema = whRequeridos / sysV;
-        
-        let batIdx = DB_BATERIAS.findIndex(bat => bat.ah >= (ahRequeridosSistema * 0.9));
-        if(batIdx === -1) batIdx = DB_BATERIAS.length - 1;
-
-        let bateriasEnSerie = sysV / 12;
-        let cantBateriasParalelo = Math.ceil((ahRequeridosSistema * 0.9) / DB_BATERIAS[batIdx].ah);
-        if(cantBateriasParalelo < 1) cantBateriasParalelo = 1;
-        let capacidadTotalWh = (cantBateriasParalelo * bateriasEnSerie) * DB_BATERIAS[batIdx].ah * sysV;
-
-        let margenSeguridadPanel = tEnergia < 1000 ? 1.2 : 1.3; 
-        let wattsPorConsumo = (tEnergia / 4.5) * margenSeguridadPanel;
-        let wattsPorLlenadoBateria = (capacidadTotalWh / 8) * margenSeguridadPanel;
-        let wattsPanelesRequeridos = Math.max(wattsPorConsumo, wattsPorLlenadoBateria);
-
-        let panIdx = DB_PANELES.findIndex(p => p.w >= (wattsPanelesRequeridos * 0.85));
-        if (panIdx === -1) {
-            panIdx = DB_PANELES.findIndex(p => p.w >= 450);
-            if(panIdx === -1) panIdx = DB_PANELES.length - 1;
-        }
-
-         // CONSTRUCCIÓN DEL HTML DE LAS LISTAS DESPLEGABLES
+        // CREAR LAS LISTAS EN EL HTML (ESTRUCTURA BASE)
+        // CREAR LAS LISTAS EN EL HTML (ESTRUCTURA BASE)
         let htmlList = `
             <li>
                 <div class="row-top">
-                    <select id="selInversor" class="combo-select" onchange="recalcularYExportar(true)">
-                        ${DB_INVERSORES.map((x, i) => `<option value="${i}" ${i===invIdx?'selected':''}>⚡ ${x.model} ($${x.precio})</option>`).join('')}
-                    </select>
+                    <select id="selInversor" class="combo-select" onchange="recalcularMatematica()"></select>
                     <span class="combo-price" id="precioInv">$0.00</span>
                 </div>
-                <span class="combo-qty" id="qtyInv">--</span>
+                <div class="qty-container">
+                    <input type="number" id="qtyInv" class="qty-input" min="1" value="1" oninput="recalcularFinanzas()">
+                    <span id="labelInv">Und(s) a $0.00 c/u</span>
+                </div>
             </li>
             <li>
                 <div class="row-top">
-                    <select id="selBateria" class="combo-select" onchange="recalcularYExportar(true)">
-                        ${DB_BATERIAS.map((x, i) => `<option value="${i}" ${i===batIdx?'selected':''}>🔋 ${x.model} ($${x.precio})</option>`).join('')}
-                    </select>
+                    <select id="selBateria" class="combo-select" onchange="recalcularMatematica()"></select>
                     <span class="combo-price" id="precioBat">$0.00</span>
                 </div>
-                <span class="combo-qty" id="qtyBat">--</span>
+                <div class="qty-container">
+                    <input type="number" id="qtyBat" class="qty-input" min="1" value="1" oninput="recalcularFinanzas()">
+                    <span id="labelBat">Und(s) a $0.00 c/u</span>
+                </div>
             </li>
             <li>
                 <div class="row-top">
-                    <select id="selPanel" class="combo-select" onchange="recalcularYExportar(true)">
-                        ${DB_PANELES.map((x, i) => `<option value="${i}" ${i===panIdx?'selected':''}>☀️ ${x.model} ($${x.precio})</option>`).join('')}
-                    </select>
+                    <select id="selPanel" class="combo-select" onchange="recalcularMatematica()"></select>
                     <span class="combo-price" id="precioPan">$0.00</span>
                 </div>
-                <span class="combo-qty" id="qtyPan">--</span>
+                <div class="qty-container">
+                    <input type="number" id="qtyPan" class="qty-input" min="1" value="1" oninput="recalcularFinanzas()">
+                    <span id="labelPan">Und(s) a $0.00 c/u</span>
+                </div>
             </li>
             <li>
                 <div class="row-top">
-                    <select id="selControlador" class="combo-select" onchange="recalcularYExportar(false)">
-                        ${DB_CONTROLADORES.map((x, i) => `<option value="${i}">🎛️ ${x.model} ($${x.precio})</option>`).join('')}
-                    </select>
+                    <select id="selControlador" class="combo-select" onchange="recalcularFinanzas()"></select>
                     <span class="combo-price" id="precioCtrl">$0.00</span>
                 </div>
-                <span class="combo-qty" id="qtyCtrl">--</span>
+                <div class="qty-container">
+                    <input type="number" id="qtyCtrl" class="qty-input" min="0" value="1" oninput="recalcularFinanzas()">
+                    <span id="labelCtrl">Und(s) a $0.00 c/u</span>
+                </div>
             </li>
             <li>
                 <div class="row-top">
                     <span class="combo-select" style="border:none; padding:0; background:transparent;">🛡️ Kit Breakers (DC/AC)</span>
                     <span class="combo-price" id="precioBrk">$30.00</span>
                 </div>
-                <span class="combo-qty">1 Kit Completo Referencial</span>
+                <span style="font-size:0.85rem; color:#475569; margin-top:2px;">1 Kit Completo Referencial</span>
             </li>
             <li>
                 <div class="row-top">
                     <span class="combo-select" style="border:none; padding:0; background:transparent;">🔌 Kit Cables y Conectores MC4</span>
                     <span class="combo-price" id="precioCab">$60.00</span>
                 </div>
-                <span class="combo-qty">Material base instalación</span>
+                <span style="font-size:0.85rem; color:#475569; margin-top:2px;">Material base instalación</span>
             </li>
         `;
         document.getElementById('listaCombo').innerHTML = htmlList;
 
-        // Dispara la magia matemática y visual
-        recalcularYExportar(true);
+        // Llenar los Selects con las opciones
+        document.getElementById('selInversor').innerHTML = DB_INVERSORES.map((x, i) => `<option value="${i}">⚡ ${x.model}</option>`).join('');
+        document.getElementById('selBateria').innerHTML = DB_BATERIAS.map((x, i) => `<option value="${i}">🔋 ${x.model}</option>`).join('');
+        document.getElementById('selPanel').innerHTML = DB_PANELES.map((x, i) => `<option value="${i}">☀️ ${x.model}</option>`).join('');
+        document.getElementById('selControlador').innerHTML = DB_CONTROLADORES.map((x, i) => `<option value="${i}">🎛️ ${x.model}</option>`).join('');
+
+        // Selección Inicial de Equipos Ideales
+        let picoReq = tPico * 1.25;
+        let invIdx = DB_INVERSORES.findIndex(inv => inv.w >= picoReq);
+        if(invIdx === -1) invIdx = DB_INVERSORES.length - 1;
+        document.getElementById('selInversor').value = invIdx;
+        
+        let sysV = DB_INVERSORES[invIdx].v;
+        let whReq = tEnergia / (tEnergia < 1000 ? 0.8 : 0.5);
+        let ahReq = whReq / sysV;
+        
+        let batIdx = DB_BATERIAS.findIndex(bat => bat.ah >= (ahReq * 0.9));
+        if(batIdx === -1) batIdx = DB_BATERIAS.length - 1;
+        document.getElementById('selBateria').value = batIdx;
+
+        let capTotalWh = DB_BATERIAS[batIdx].ah * sysV;
+        let wPanReq = Math.max((tEnergia / 4.5), (capTotalWh / 8)) * (tEnergia < 1000 ? 1.2 : 1.3);
+        
+        let panIdx = DB_PANELES.findIndex(p => p.w >= (wPanReq * 0.85));
+        if (panIdx === -1) {
+            panIdx = DB_PANELES.findIndex(p => p.w >= 450);
+            if(panIdx === -1) panIdx = DB_PANELES.length - 1;
+        }
+        document.getElementById('selPanel').value = panIdx;
+
+        // Arranca la matemática para calcular las Unidades (Inputs) en base a lo seleccionado
+        recalcularMatematica();
     }
 
-    // MAGIA DE RECÁLCULO DINÁMICO AL TOCAR LAS LISTAS
-    function recalcularYExportar(autoAjustarControlador = false) {
+    // Se dispara cuando se cambia una OPCIÓN en los Desplegables. Sugiere nuevas cantidades.
+    function recalcularMatematica() {
         let tPico = reqGlobal.pico;
         let tEnergia = reqGlobal.energia;
         
-        let selInv = document.getElementById('selInversor');
-        let selBat = document.getElementById('selBateria');
-        let selPan = document.getElementById('selPanel');
-        let selCtrl = document.getElementById('selControlador');
-
-        let inv = DB_INVERSORES[selInv.value];
-        let bat = DB_BATERIAS[selBat.value];
-        let pan = DB_PANELES[selPan.value];
+        let inv = DB_INVERSORES[document.getElementById('selInversor').value];
+        let bat = DB_BATERIAS[document.getElementById('selBateria').value];
+        let pan = DB_PANELES[document.getElementById('selPanel').value];
 
         let sysV = inv.v;
         document.getElementById('sys-volt').innerText = `${sysV}V`;
 
-        // 1. RECALCULAR CANTIDAD DE INVERSORES
-        let picoRequerido = tPico * 1.25;
-        comboCantidades.inv = Math.ceil((picoRequerido * 0.95) / inv.w); 
-        if(comboCantidades.inv < 1) comboCantidades.inv = 1;
+        // Cantidad Inversores
+        let cInv = Math.max(1, Math.ceil((tPico * 1.25 * 0.95) / inv.w));
+        document.getElementById('qtyInv').value = cInv;
 
-        // 2. RECALCULAR CANTIDAD DE BATERÍAS (Si el usuario escoge una más pequeña, suma cantidad)
-        let factorDescarga = tEnergia < 1000 ? 0.8 : 0.5; 
-        let whRequeridos = tEnergia / factorDescarga;
-        let ahRequeridosSistema = whRequeridos / sysV;
-        
-        let bateriasEnSerie = sysV / 12;
-        let cantBateriasParalelo = Math.ceil((ahRequeridosSistema * 0.9) / bat.ah); 
-        if(cantBateriasParalelo < 1) cantBateriasParalelo = 1;
-        comboCantidades.bat = cantBateriasParalelo * bateriasEnSerie;
+        // Cantidad Baterías
+        let whReq = tEnergia / (tEnergia < 1000 ? 0.8 : 0.5);
+        let cBatParalelo = Math.max(1, Math.ceil(((whReq / sysV) * 0.9) / bat.ah));
+        document.getElementById('qtyBat').value = cBatParalelo * (sysV / 12);
 
-        // 3. RECALCULAR CANTIDAD DE PANELES (Tolerancia de 15% hacia abajo = 0.85)
-        let margenSeguridadPanel = tEnergia < 1000 ? 1.2 : 1.3; 
-        let wattsPorConsumo = (tEnergia / 4.5) * margenSeguridadPanel;
-        let capacidadTotalWh = comboCantidades.bat * bat.ah * sysV;
-        let wattsPorLlenadoBateria = (capacidadTotalWh / 8) * margenSeguridadPanel;
-        let wattsPanelesRequeridos = Math.max(wattsPorConsumo, wattsPorLlenadoBateria);
+        // Cantidad Paneles
+        let capWh = document.getElementById('qtyBat').value * bat.ah * 12; // Energía total del banco
+        let wPanReq = Math.max((tEnergia / 4.5), (capWh / 8)) * (tEnergia < 1000 ? 1.2 : 1.3);
+        let cPan = Math.max(1, Math.ceil((wPanReq * 0.85) / pan.w));
+        document.getElementById('qtyPan').value = cPan;
 
-        comboCantidades.pan = Math.ceil((wattsPanelesRequeridos * 0.85) / pan.w);
-        if(comboCantidades.pan < 1) comboCantidades.pan = 1;
-
-        // 4. RECALCULAR CONTROLADOR (Sigue inteligentemente a los paneles y al inversor)
-        let amperiosControladorReq = (comboCantidades.pan * pan.w) / sysV;
-        
-        if (autoAjustarControlador) {
-            let ctrlIdx = DB_CONTROLADORES.findIndex(c => c.a >= amperiosControladorReq);
+        // Ajuste Controlador
+        if (!inv.hibrido) {
+            let ampReq = (cPan * pan.w) / sysV;
+            let ctrlIdx = DB_CONTROLADORES.findIndex(c => c.a >= ampReq);
             if (ctrlIdx === -1) ctrlIdx = DB_CONTROLADORES.length - 1;
-            selCtrl.value = ctrlIdx;
-        }
-        
-        let ctrl = DB_CONTROLADORES[selCtrl.value];
-        let subCtrl = 0;
-        let txtCtrlUI = "";
-        
-        if (inv.hibrido === true) {
-            selCtrl.disabled = true;
-            comboCantidades.ctrl = 0;
-            txtCtrlUI = "Ahorro (Integrado en Inversor)";
-        } else {
-            selCtrl.disabled = false;
-            comboCantidades.ctrl = Math.ceil((amperiosControladorReq * 0.95) / ctrl.a);
-            if(comboCantidades.ctrl < 1) comboCantidades.ctrl = 1;
-            subCtrl = comboCantidades.ctrl * ctrl.precio;
-            txtCtrlUI = `${comboCantidades.ctrl} Und(s) a $${ctrl.precio.toFixed(2)} c/u`;
+            document.getElementById('selControlador').value = ctrlIdx;
+            let cCtrl = Math.max(1, Math.ceil((ampReq * 0.95) / DB_CONTROLADORES[ctrlIdx].a));
+            document.getElementById('qtyCtrl').value = cCtrl;
         }
 
-        // CÁLCULO FINANCIERO FINAL
-        let subInv = comboCantidades.inv * inv.precio;
-        let subBat = comboCantidades.bat * bat.precio;
-        let subPan = comboCantidades.pan * pan.precio;
-        let precioBrk = 30;
-        let precioCab = 60;
-        let granTotal = subInv + subBat + subPan + subCtrl + precioBrk + precioCab;
-
-        // ACTUALIZACIÓN VISUAL
-        document.getElementById('precioInv').innerText = `$${subInv.toFixed(2)}`;
-        document.getElementById('qtyInv').innerText = `${comboCantidades.inv} Und(s) a $${inv.precio.toFixed(2)} c/u`;
-        
-        document.getElementById('precioBat').innerText = `$${subBat.toFixed(2)}`;
-        document.getElementById('qtyBat').innerText = `${comboCantidades.bat} Und(s) a $${bat.precio.toFixed(2)} c/u`;
-        
-        document.getElementById('precioPan').innerText = `$${subPan.toFixed(2)}`;
-        document.getElementById('qtyPan').innerText = `${comboCantidades.pan} Und(s) a $${pan.precio.toFixed(2)} c/u`;
-        
-        document.getElementById('precioCtrl').innerText = `$${subCtrl.toFixed(2)}`;
-        document.getElementById('qtyCtrl').innerText = txtCtrlUI;
-
-        document.getElementById('granTotal').innerText = granTotal.toFixed(2);
-
-        actualizarReporteExportacion();
+        // Calcula finanzas con estas nuevas cantidades sugeridas
+        recalcularFinanzas();
     }
 
-    function actualizarReporteExportacion() {
-        if(equipos.length === 0) return;
-
-        let cNombre = document.getElementById('clienteNombre').value || "No especificado";
-        let cCedula = document.getElementById('clienteCedula').value || "No especificada";
-        let cTel = document.getElementById('clienteTelefono').value || "No especificado";
-        let strFecha = new Date().toLocaleDateString('es-VE');
-        let sysV = document.getElementById('sys-volt').innerText;
-
+    // Se dispara cuando cambian las cantidades manualmente o después de recalcular Matemática. 
+    function recalcularFinanzas() {
         let inv = DB_INVERSORES[document.getElementById('selInversor').value];
         let bat = DB_BATERIAS[document.getElementById('selBateria').value];
         let pan = DB_PANELES[document.getElementById('selPanel').value];
         let ctrl = DB_CONTROLADORES[document.getElementById('selControlador').value];
 
-        let textoCargas = equipos.map(eq => `- ${eq.cantidad}x ${eq.nombre} (${eq.watts}W, ${eq.horas}h)`).join('\n');
-        let lineaCtrl = inv.hibrido ? "- Controlador MPPT/PWM (Integrado en Inversor)" : `- ${comboCantidades.ctrl}x ${ctrl.model} ($${(comboCantidades.ctrl * ctrl.precio).toFixed(2)})`;
+        let qInv = parseInt(document.getElementById('qtyInv').value) || 0;
+        let qBat = parseInt(document.getElementById('qtyBat').value) || 0;
+        let qPan = parseInt(document.getElementById('qtyPan').value) || 0;
+        
+        let subInv = qInv * inv.precio;
+        let subBat = qBat * bat.precio;
+        let subPan = qPan * pan.precio;
+        
+        let subCtrl = 0;
+        let qCtrlInput = document.getElementById('qtyCtrl');
+
+        document.getElementById('labelInv').innerText = `Und(s) a $${inv.precio.toFixed(2)} c/u`;
+        document.getElementById('precioInv').innerText = `$${subInv.toFixed(2)}`;
+
+        document.getElementById('labelBat').innerText = `Und(s) a $${bat.precio.toFixed(2)} c/u`;
+        document.getElementById('precioBat').innerText = `$${subBat.toFixed(2)}`;
+
+        document.getElementById('labelPan').innerText = `Und(s) a $${pan.precio.toFixed(2)} c/u`;
+        document.getElementById('precioPan').innerText = `$${subPan.toFixed(2)}`;
+
+        if (inv.hibrido) {
+            qCtrlInput.value = 0;
+            qCtrlInput.disabled = true;
+            document.getElementById('selControlador').disabled = true;
+            document.getElementById('labelCtrl').innerText = `Ahorro (Híbrido Integrado)`;
+            document.getElementById('precioCtrl').innerText = `$0.00`;
+        } else {
+            qCtrlInput.disabled = false;
+            document.getElementById('selControlador').disabled = false;
+            let qCtrl = parseInt(qCtrlInput.value) || 0;
+            subCtrl = qCtrl * ctrl.precio;
+            document.getElementById('labelCtrl').innerText = `Und(s) a $${ctrl.precio.toFixed(2)} c/u`;
+            document.getElementById('precioCtrl').innerText = `$${subCtrl.toFixed(2)}`;
+        }
+
+        let granTotal = subInv + subBat + subPan + subCtrl + 30 + 60;
+        document.getElementById('granTotal').innerText = granTotal.toFixed(2);
+
+        actualizarReporteWA(qInv, inv, qBat, bat, qPan, pan, parseInt(qCtrlInput.value)||0, ctrl, granTotal);
+    }
+
+    function actualizarReporteWA(qInv, inv, qBat, bat, qPan, pan, qCtrl, ctrl, granTotal) {
+        if(equipos.length === 0) return;
+
+        let cNom = document.getElementById('clienteNombre').value || "No especificado";
+        let cCed = document.getElementById('clienteCedula').value || "No especificada";
+        let cTel = document.getElementById('clienteTelefono').value || "No especificado";
+        let fec = new Date().toLocaleDateString('es-VE');
+        let sysV = document.getElementById('sys-volt').innerText;
+
+        let txtCargas = equipos.map(eq => `- ${eq.cantidad}x ${eq.nombre} (${eq.watts}W, ${eq.horas}h)`).join('\n');
+        let lCtrl = inv.hibrido ? "- Controlador MPPT/PWM (Integrado en Inversor)" : `- ${qCtrl}x ${ctrl.model} ($${(qCtrl * ctrl.precio).toFixed(2)})`;
 
         textoReporteGlobal = 
 `☀️ PRESUPUESTO - ENERGÍA SOLAR ☀️
-Emisión: ${strFecha}
+Emisión: ${fec}
 
 👤 DATOS DEL CLIENTE
-Nombre: ${cNombre}
-Cédula/RIF: ${cCedula}
+Nombre: ${cNom}
+Cédula/RIF: ${cCed}
 Teléfono: ${cTel}
 
 📋 EQUIPOS A RESPALDAR:
-${textoCargas}
+${txtCargas}
 📦 COTIZACIÓN (Sistema ${sysV}):
-- ${comboCantidades.inv}x ${inv.model} ($${(comboCantidades.inv * inv.precio).toFixed(2)})
-- ${comboCantidades.bat}x ${bat.model} ($${(comboCantidades.bat * bat.precio).toFixed(2)})
-- ${comboCantidades.pan}x ${pan.model} ($${(comboCantidades.pan * pan.precio).toFixed(2)})
-${lineaCtrl}
+- ${qInv}x ${inv.model} ($${(qInv * inv.precio).toFixed(2)})
+- ${qBat}x ${bat.model} ($${(qBat * bat.precio).toFixed(2)})
+- ${qPan}x ${pan.model} ($${(qPan * pan.precio).toFixed(2)})
+${lCtrl}
 - Kit Protecciones y Breakers ($30.00)
 - Kit Cables y Conectores MC4 ($60.00)
 
-💰 GRAN TOTAL: $${document.getElementById('granTotal').innerText}
+💰 GRAN TOTAL: $${granTotal.toFixed(2)}
 (Monto exento de instalación)`;
     }
 
