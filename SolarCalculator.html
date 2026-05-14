@@ -15,6 +15,7 @@
             --danger: #ef4444;
             --wa: #25D366;
             --mail: #ea4335;
+            --print: #4f46e5;
         }
         * { box-sizing: border-box; }
         body { font-family: system-ui, -apple-system, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 12px; padding-bottom: 80px; }
@@ -22,18 +23,19 @@
         
         h1 { font-size: 1.5rem; color: var(--primary); text-align: center; margin-bottom: 20px; }
         
-        /* Formulario Móvil */
+        /* Formularios */
         .card-form { background: var(--surface); padding: 16px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); margin-bottom: 16px; }
+        .section-title { margin-top: 0; margin-bottom: 12px; font-size: 1.1rem; color: var(--primary); border-bottom: 1px solid var(--border); padding-bottom: 8px; }
         .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; }
         .form-group { display: flex; flex-direction: column; gap: 4px; }
         .form-group.full { grid-column: span 2; }
         label { font-size: 0.85rem; font-weight: 600; color: #475569; }
-        input { width: 100%; padding: 12px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 16px; /* 16px evita zoom en iOS */ }
+        input { width: 100%; padding: 12px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 16px; }
         
         button.btn-add { width: 100%; padding: 14px; background: var(--primary); color: white; border: none; border-radius: 8px; font-size: 1rem; font-weight: bold; cursor: pointer; }
         button.btn-add:active { background: var(--secondary); }
 
-        /* Lista de Equipos Móvil */
+        /* Lista de Equipos */
         .items-list { display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px; }
         .item-card { background: white; padding: 12px; border-radius: 8px; border-left: 4px solid var(--primary); display: flex; justify-content: space-between; align-items: center; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
         .item-info h4 { margin: 0 0 4px 0; font-size: 1rem; }
@@ -50,24 +52,73 @@
         .combo-desc { font-size: 0.8rem; color: #64748b; }
         .combo-qty { color: var(--primary); font-weight: 900; font-size: 1rem; margin-top: 4px; }
 
-        /* Botones de Acción (Exportar/Limpiar) */
+        /* Botones de Acción */
         .action-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 20px; }
         .btn-action { padding: 12px; border: none; border-radius: 8px; font-size: 0.9rem; font-weight: bold; color: white; display: flex; align-items: center; justify-content: center; gap: 8px; cursor: pointer; }
         .btn-wa { background: var(--wa); }
         .btn-mail { background: var(--mail); }
+        .btn-print { background: var(--print); }
         .btn-dl { background: #475569; }
         .btn-clear { background: var(--danger); grid-column: span 2; }
+
+        /* Estilos EXCLUSIVOS para cuando se le da a imprimir/generar PDF */
+        @media print {
+            body { background: white; padding: 0; color: black; }
+            .container { box-shadow: none; border: none; max-width: 100%; }
+            .card-form { box-shadow: none; border: none; padding: 0; margin-bottom: 20px; }
+            .section-title { color: black; border-bottom: 2px solid black; }
+            input { border: none !important; background: transparent !important; padding: 0; margin: 0; font-weight: bold; color: black; }
+            .btn-add, .btn-delete, .action-grid { display: none !important; }
+            .results-panel { border: 2px solid black; }
+            h1 { color: black; }
+            .combo-qty { color: black; }
+            .item-card { border-left: 2px solid black; box-shadow: none; border-bottom: 1px solid #ccc; border-radius: 0; }
+        }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h1>☀️ Cotizador Solar</h1>
+    <h1>☀️ Presupuesto Solar</h1>
     
+    <!-- Módulo de Cliente -->
     <div class="card-form">
+        <h3 class="section-title">👤 Datos del Cliente</h3>
+        <div class="form-group full" style="margin-bottom: 12px;">
+            <label>Nombre y Apellido</label>
+            <input type="text" id="clienteNombre" placeholder="Ej. Juan Pérez" oninput="actualizarReporte()">
+        </div>
+        <div class="form-row">
+            <div class="form-group">
+                <label>Cédula/RIF</label>
+                <input type="text" id="clienteCedula" placeholder="Ej. V-12345678" oninput="actualizarReporte()">
+            </div>
+            <div class="form-group">
+                <label>Teléfono (WhatsApp)</label>
+                <input type="tel" id="clienteTelefono" placeholder="Ej. 04141234567" oninput="actualizarReporte()">
+            </div>
+        </div>
+    </div>
+
+    <!-- Módulo de Equipos -->
+    <div class="card-form">
+        <h3 class="section-title">🔌 Cargas a Conectar</h3>
         <div class="form-group full" style="margin-bottom: 12px;">
             <label>Electrodoméstico</label>
-            <input type="text" id="nombre" placeholder="Ej. Nevera, Televisor, Bombillos">
+            <!-- El atributo 'list' lo conecta con las sugerencias -->
+            <input type="text" id="nombre" list="listaSugerencias" placeholder="Ej. Nevera, Televisor..." oninput="autoCompletarWatts()">
+            
+            <datalist id="listaSugerencias">
+                <option value="Bombillo LED">
+                <option value="TV 32 pulgadas">
+                <option value="TV 50 pulgadas">
+                <option value="Ventilador de pedestal">
+                <option value="Router WiFi + Modem">
+                <option value="Nevera Ejecutiva">
+                <option value="Nevera Mediana / Congelador">
+                <option value="Laptop">
+                <option value="PC de Escritorio">
+            </datalist>
         </div>
         <div class="form-row">
             <div class="form-group">
@@ -89,21 +140,22 @@
     </div>
 
     <div class="items-list" id="listaCargas">
-        <!-- Tarjetas dinámicas de equipos -->
+        <!-- Tarjetas dinámicas -->
     </div>
 
     <div id="areaResultados" style="display: none;">
         <div class="results-panel">
-            <h2>📦 Combo Sugerido (<span id="sys-volt">12V</span>)</h2>
+            <h2>📦 Combo Requerido (<span id="sys-volt">12V</span>)</h2>
             <ul class="combo-list" id="listaCombo">
-                <!-- Despiece del combo -->
+                <!-- Despiece -->
             </ul>
         </div>
 
         <div class="action-grid">
             <button class="btn-action btn-wa" onclick="enviarWA()">💬 WhatsApp</button>
+            <button class="btn-action btn-print" onclick="window.print()">🖨️ Imprimir / PDF</button>
             <button class="btn-action btn-mail" onclick="enviarCorreo()">✉️ Correo</button>
-            <button class="btn-action btn-dl" onclick="descargarTxt()">📥 Descargar TXT</button>
+            <button class="btn-action btn-dl" onclick="descargarTxt()">📥 Guardar TXT</button>
             <button class="btn-action btn-clear" onclick="limpiarTodo()">🗑️ Limpiar Todo</button>
         </div>
     </div>
@@ -111,9 +163,31 @@
 
 <script>
     let equipos = [];
-    let textoReporteGlobal = ""; // Variable para guardar el reporte formateado
+    let textoReporteGlobal = "";
 
-    // Constantes Técnicas
+    // Catálogo oculto para autocompletar (Valores promedio referenciales en Watts)
+    const catalogoAproximado = {
+        "Bombillo LED": 10,
+        "TV 32 pulgadas": 45,
+        "TV 50 pulgadas": 100,
+        "Ventilador de pedestal": 60,
+        "Router WiFi + Modem": 15,
+        "Nevera Ejecutiva": 100,
+        "Nevera Mediana / Congelador": 180,
+        "Laptop": 65,
+        "PC de Escritorio": 250
+    };
+
+    function autoCompletarWatts() {
+        const nombreIngresado = document.getElementById('nombre').value;
+        // Si el usuario selecciona un equipo del catálogo, le precarga los watts sugeridos
+        if(catalogoAproximado[nombreIngresado]) {
+            document.getElementById('watts').value = catalogoAproximado[nombreIngresado];
+            // Foco en las horas para mayor velocidad de uso
+            document.getElementById('horas').focus(); 
+        }
+    }
+
     const POTENCIA_PANEL = 550, BATERIA_AH = 200, BATERIA_V = 12, HORAS_SOL_PICO = 4.5;
     const INVERSORES_COMERCIALES = [1000, 3000, 5000, 8000, 10000];
     const BREAKERS = [10, 16, 20, 32, 40, 50, 63, 80, 100, 125, 150, 200];
@@ -128,13 +202,13 @@
         const horas = parseFloat(document.getElementById('horas').value);
 
         if (!nombre || isNaN(cantidad) || isNaN(watts) || isNaN(horas)) {
-            alert("Completa todos los campos"); return;
+            alert("Completa todos los campos de carga"); return;
         }
 
         equipos.push({ id: Date.now(), nombre, cantidad, watts, horas, pico: cantidad * watts, energia: cantidad * watts * horas });
         
         document.getElementById('nombre').value = ''; document.getElementById('watts').value = '';
-        document.getElementById('nombre').focus();
+        document.getElementById('horas').value = ''; document.getElementById('nombre').focus();
         actualizarUI();
     }
 
@@ -144,8 +218,11 @@
     }
 
     function limpiarTodo() {
-        if(confirm("¿Seguro que deseas empezar de nuevo?")) {
+        if(confirm("¿Seguro que deseas vaciar el presupuesto?")) {
             equipos = [];
+            document.getElementById('clienteNombre').value = '';
+            document.getElementById('clienteCedula').value = '';
+            document.getElementById('clienteTelefono').value = '';
             document.getElementById('nombre').value = '';
             document.getElementById('cantidad').value = '1';
             document.getElementById('watts').value = '';
@@ -183,7 +260,17 @@
         }
     }
 
+    // Se llama a esta función cuando se escribe en los inputs del cliente para mantener el txt actualizado
+    function actualizarReporte() {
+        if (equipos.length > 0) actualizarUI();
+    }
+
     function generarComboMobile(tPico, tEnergia, textoCargas) {
+        // Datos del cliente
+        let cNombre = document.getElementById('clienteNombre').value || "No especificado";
+        let cCedula = document.getElementById('clienteCedula').value || "No especificada";
+        let cTelefono = document.getElementById('clienteTelefono').value || "No especificado";
+
         let invW = getInversor(tPico * 1.25);
         let sysV = invW < 2000 ? 12 : (invW < 5000 ? 24 : 48);
         
@@ -203,7 +290,6 @@
 
         document.getElementById('sys-volt').innerText = `${sysV}V`;
         
-        // Render en HTML
         document.getElementById('listaCombo').innerHTML = `
             <li><span class="combo-title">⚡ Inversor DC/AC</span><span class="combo-desc">Onda Senoidal Pura a 120V</span><span class="combo-qty">1 Und x ${invW}W</span></li>
             <li><span class="combo-title">🔋 Banco Baterías</span><span class="combo-desc">Gel/Litio ${BATERIA_V}V ${BATERIA_AH}Ah</span><span class="combo-qty">${batsReq} Und(s)</span></li>
@@ -213,9 +299,13 @@
             <li><span class="combo-title">🔌 Cableado Solar</span><span class="combo-desc">Cable UV + Conectores MC4</span><span class="combo-qty">30m + ${panReq} Pares</span></li>
         `;
 
-        // Generar Texto para Compartir
         textoReporteGlobal = 
 `☀️ PRESUPUESTO - COMBO SOLAR ☀️
+
+👤 DATOS DEL CLIENTE
+Nombre: ${cNombre}
+Cédula/RIF: ${cCedula}
+Teléfono: ${cTelefono}
 
 📋 EQUIPOS A RESPALDAR:
 ${textoCargas}
@@ -224,28 +314,43 @@ ${textoCargas}
 - ${batsReq}x Baterías de ${BATERIA_V}V ${BATERIA_AH}Ah
 - ${panReq}x Paneles Solares de ${POTENCIA_PANEL}W
 - ${esHib ? 'Inversor Híbrido (MPPT y Transfer integrados)' : `Controlador ${ctrlA}A + Transfer ATS`}
-- Kit de Protecciones (Breakers DC y AC)
+- Kit Protecciones: Breaker DC Paneles ${brkPan}A, DC Batería ${brkBat}A, AC Salida ${brkAC}A
 - 30mts Cable Solar + ${panReq} pares de conectores MC4
 
-⚠️ Cálculo referencial en base a exigencia diaria.`;
+⚠️ Cálculo referencial en base a exigencias ingresadas.`;
     }
 
-    // Funciones de Compartir y Exportar
+    // Funciones de Envío
     function encodeTexto() { return encodeURIComponent(textoReporteGlobal); }
 
     function enviarWA() {
-        window.open(`https://wa.me/?text=${encodeTexto()}`, '_blank');
+        let telBruto = document.getElementById('clienteTelefono').value;
+        // Limpiamos el número de espacios y guiones
+        let telLimpio = telBruto.replace(/\D/g, '');
+        
+        // Logica para automatizar código de país local (Venezuela) si el número empieza por 0
+        if(telLimpio.startsWith('0')) {
+            telLimpio = '58' + telLimpio.substring(1);
+        }
+
+        // Si hay un número válido, abre el chat directo, si no, abre la lista de contactos general
+        let url = telLimpio.length >= 10 ? 
+            `https://wa.me/${telLimpio}?text=${encodeTexto()}` : 
+            `https://wa.me/?text=${encodeTexto()}`;
+            
+        window.open(url, '_blank');
     }
 
     function enviarCorreo() {
-        window.open(`mailto:?subject=Cálculo Combo Solar&body=${encodeTexto()}`, '_blank');
+        window.open(`mailto:?subject=Presupuesto Sistema Solar&body=${encodeTexto()}`, '_blank');
     }
 
     function descargarTxt() {
         const blob = new Blob([textoReporteGlobal], { type: "text/plain;charset=utf-8" });
         const enlace = document.createElement("a");
         enlace.href = URL.createObjectURL(blob);
-        enlace.download = "Presupuesto_Solar.txt";
+        let cNombre = document.getElementById('clienteNombre').value.replace(/ /g, "_") || "Cliente";
+        enlace.download = `Presupuesto_Solar_${cNombre}.txt`;
         document.body.appendChild(enlace);
         enlace.click();
         document.body.removeChild(enlace);
@@ -253,5 +358,4 @@ ${textoCargas}
 </script>
 
 </body>
-    </html>
-    
+</html>
