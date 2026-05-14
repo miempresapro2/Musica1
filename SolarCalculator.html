@@ -2,106 +2,124 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Generador de Combos Solares Coherentes</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Cotizador Solar Móvil</title>
     <style>
         :root {
-            --primary: #1e40af;
-            --secondary: #1d4ed8;
-            --background: #f8fafc;
+            --primary: #0284c7;
+            --secondary: #0369a1;
+            --bg: #f0f9ff;
             --surface: #ffffff;
             --text: #0f172a;
-            --border: #e2e8f0;
-            --alert: #f59e0b;
+            --border: #e0f2fe;
+            --danger: #ef4444;
+            --wa: #25D366;
+            --mail: #ea4335;
         }
-        body { font-family: system-ui, sans-serif; background: var(--background); color: var(--text); margin: 0; padding: 20px; }
-        .container { max-width: 1000px; margin: 0 auto; background: var(--surface); padding: 24px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
-        h1, h2 { color: var(--primary); }
-        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 20px; }
-        .form-group { display: flex; flex-direction: column; gap: 8px; }
-        input, button { padding: 10px; border: 1px solid var(--border); border-radius: 6px; font-size: 1rem; }
-        button { background-color: var(--primary); color: white; border: none; cursor: pointer; font-weight: bold; }
-        button:hover { background-color: var(--secondary); }
-        table { width: 100%; border-collapse: collapse; margin-top: 20px; background: white; }
-        th, td { text-align: left; padding: 12px; border-bottom: 1px solid var(--border); }
-        th { background-color: #eff6ff; }
-        .delete-btn { background-color: #ef4444; padding: 6px 12px; }
-        .combo-panel { margin-top: 32px; padding: 24px; background: white; border: 2px solid var(--primary); border-radius: 8px; }
+        * { box-sizing: border-box; }
+        body { font-family: system-ui, -apple-system, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 12px; padding-bottom: 80px; }
+        .container { max-width: 600px; margin: 0 auto; }
+        
+        h1 { font-size: 1.5rem; color: var(--primary); text-align: center; margin-bottom: 20px; }
+        
+        /* Formulario Móvil */
+        .card-form { background: var(--surface); padding: 16px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); margin-bottom: 16px; }
+        .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; }
+        .form-group { display: flex; flex-direction: column; gap: 4px; }
+        .form-group.full { grid-column: span 2; }
+        label { font-size: 0.85rem; font-weight: 600; color: #475569; }
+        input { width: 100%; padding: 12px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 16px; /* 16px evita zoom en iOS */ }
+        
+        button.btn-add { width: 100%; padding: 14px; background: var(--primary); color: white; border: none; border-radius: 8px; font-size: 1rem; font-weight: bold; cursor: pointer; }
+        button.btn-add:active { background: var(--secondary); }
+
+        /* Lista de Equipos Móvil */
+        .items-list { display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px; }
+        .item-card { background: white; padding: 12px; border-radius: 8px; border-left: 4px solid var(--primary); display: flex; justify-content: space-between; align-items: center; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        .item-info h4 { margin: 0 0 4px 0; font-size: 1rem; }
+        .item-info p { margin: 0; font-size: 0.8rem; color: #64748b; }
+        .btn-delete { background: #fee2e2; color: var(--danger); border: none; padding: 10px; border-radius: 6px; font-weight: bold; cursor: pointer; }
+
+        /* Panel de Resultados */
+        .results-panel { background: white; padding: 16px; border-radius: 12px; border: 2px solid var(--primary); margin-top: 10px; }
+        .results-panel h2 { margin-top: 0; font-size: 1.2rem; color: var(--primary); border-bottom: 1px solid var(--border); padding-bottom: 10px; }
         .combo-list { list-style: none; padding: 0; margin: 0; }
-        .combo-list li { padding: 14px 0; border-bottom: 1px dashed #cbd5e1; display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; }
+        .combo-list li { padding: 12px 0; border-bottom: 1px dashed #cbd5e1; display: flex; flex-direction: column; gap: 4px; }
         .combo-list li:last-child { border-bottom: none; }
-        .badge { background: #e2e8f0; padding: 6px 10px; border-radius: 4px; font-size: 0.9rem; font-weight: bold; white-space: nowrap; text-align: right; }
-        .sub-text { color: #64748b; font-size: 0.85rem; display: block; margin-top: 4px; line-height: 1.4; }
-        .logic-note { color: var(--alert); font-size: 0.8rem; font-weight: bold; display: block; margin-top: 4px; }
+        .combo-title { font-weight: bold; font-size: 0.95rem; }
+        .combo-desc { font-size: 0.8rem; color: #64748b; }
+        .combo-qty { color: var(--primary); font-weight: 900; font-size: 1rem; margin-top: 4px; }
+
+        /* Botones de Acción (Exportar/Limpiar) */
+        .action-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 20px; }
+        .btn-action { padding: 12px; border: none; border-radius: 8px; font-size: 0.9rem; font-weight: bold; color: white; display: flex; align-items: center; justify-content: center; gap: 8px; cursor: pointer; }
+        .btn-wa { background: var(--wa); }
+        .btn-mail { background: var(--mail); }
+        .btn-dl { background: #475569; }
+        .btn-clear { background: var(--danger); grid-column: span 2; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h1>Armador de Combos Solares - Motor de Coherencia</h1>
+    <h1>☀️ Cotizador Solar</h1>
     
-    <div class="grid">
-        <div class="form-group">
-            <label>Equipo (Ej. Nevera, PC)</label>
-            <input type="text" id="nombre" placeholder="Nombre del equipo">
+    <div class="card-form">
+        <div class="form-group full" style="margin-bottom: 12px;">
+            <label>Electrodoméstico</label>
+            <input type="text" id="nombre" placeholder="Ej. Nevera, Televisor, Bombillos">
         </div>
-        <div class="form-group">
-            <label>Cantidad</label>
-            <input type="number" id="cantidad" value="1" min="1">
+        <div class="form-row">
+            <div class="form-group">
+                <label>Cant.</label>
+                <input type="number" id="cantidad" value="1" min="1" inputmode="numeric">
+            </div>
+            <div class="form-group">
+                <label>Watts c/u</label>
+                <input type="number" id="watts" placeholder="W" inputmode="numeric">
+            </div>
         </div>
-        <div class="form-group">
-            <label>Consumo (Watts)</label>
-            <input type="number" id="watts" placeholder="W por unidad">
+        <div class="form-row">
+            <div class="form-group full">
+                <label>Horas de uso al día</label>
+                <input type="number" id="horas" placeholder="1 a 24 hrs" max="24" inputmode="numeric">
+            </div>
         </div>
-        <div class="form-group">
-            <label>Horas de uso al día</label>
-            <input type="number" id="horas" placeholder="1 a 24" max="24">
-        </div>
-        <div class="form-group" style="justify-content: flex-end;">
-            <button onclick="agregarEquipo()">Añadir Carga</button>
-        </div>
+        <button class="btn-add" onclick="agregarEquipo()">+ Añadir al Cálculo</button>
     </div>
 
-    <table>
-        <thead>
-            <tr>
-                <th>Equipo</th>
-                <th>Cant.</th>
-                <th>Watts c/u</th>
-                <th>Horas/Día</th>
-                <th>Pico (W)</th>
-                <th>Energía (Wh)</th>
-                <th></th>
-            </tr>
-        </thead>
-        <tbody id="listaCargas"></tbody>
-    </table>
+    <div class="items-list" id="listaCargas">
+        <!-- Tarjetas dinámicas de equipos -->
+    </div>
 
-    <div class="combo-panel" id="panelCombo" style="display: none;">
-        <h2>📦 Configuración Óptima Calculada</h2>
-        <p style="color: #64748b; font-size: 0.9rem;">Parámetros del sistema: <strong id="sys-volt">12V</strong> DC a 120V AC.</p>
-        <ul class="combo-list" id="listaCombo">
-            <!-- Dinámico -->
-        </ul>
+    <div id="areaResultados" style="display: none;">
+        <div class="results-panel">
+            <h2>📦 Combo Sugerido (<span id="sys-volt">12V</span>)</h2>
+            <ul class="combo-list" id="listaCombo">
+                <!-- Despiece del combo -->
+            </ul>
+        </div>
+
+        <div class="action-grid">
+            <button class="btn-action btn-wa" onclick="enviarWA()">💬 WhatsApp</button>
+            <button class="btn-action btn-mail" onclick="enviarCorreo()">✉️ Correo</button>
+            <button class="btn-action btn-dl" onclick="descargarTxt()">📥 Descargar TXT</button>
+            <button class="btn-action btn-clear" onclick="limpiarTodo()">🗑️ Limpiar Todo</button>
+        </div>
     </div>
 </div>
 
 <script>
     let equipos = [];
+    let textoReporteGlobal = ""; // Variable para guardar el reporte formateado
 
-    // Constantes Técnicas Base
-    const POTENCIA_PANEL = 550; 
-    const BATERIA_AH = 200; 
-    const BATERIA_V = 12; 
-    const DESCARGA_DIARIA_MAX = 0.5; // Profundidad de descarga diaria (50% para Gel)
-    const TASA_DESCARGA_PICO = 0.5; // Factor "C" máximo seguro instantáneo (0.5C)
-    const HORAS_SOL_PICO = 4.5;
+    // Constantes Técnicas
+    const POTENCIA_PANEL = 550, BATERIA_AH = 200, BATERIA_V = 12, HORAS_SOL_PICO = 4.5;
     const INVERSORES_COMERCIALES = [1000, 3000, 5000, 8000, 10000];
-    const BREAKERS_COMERCIALES = [10, 16, 20, 32, 40, 50, 63, 80, 100, 125, 150, 200, 250];
+    const BREAKERS = [10, 16, 20, 32, 40, 50, 63, 80, 100, 125, 150, 200];
 
-    function obtenerComercial(valor, lista) {
-        return lista.find(item => item >= valor) || (Math.ceil(valor / lista[lista.length-1]) * lista[lista.length-1]);
-    }
+    function getBreaker(val) { return BREAKERS.find(b => b >= val) || Math.ceil(val/50)*50; }
+    function getInversor(val) { return INVERSORES_COMERCIALES.find(i => i >= val) || Math.ceil(val/5000)*5000; }
 
     function agregarEquipo() {
         const nombre = document.getElementById('nombre').value;
@@ -109,11 +127,15 @@
         const watts = parseFloat(document.getElementById('watts').value);
         const horas = parseFloat(document.getElementById('horas').value);
 
-        if (!nombre || isNaN(cantidad) || isNaN(watts) || isNaN(horas)) return;
+        if (!nombre || isNaN(cantidad) || isNaN(watts) || isNaN(horas)) {
+            alert("Completa todos los campos"); return;
+        }
 
-        equipos.push({ id: Date.now(), nombre, cantidad, watts, horas, potenciaPico: cantidad * watts, energiaDiaria: cantidad * watts * horas });
+        equipos.push({ id: Date.now(), nombre, cantidad, watts, horas, pico: cantidad * watts, energia: cantidad * watts * horas });
+        
+        document.getElementById('nombre').value = ''; document.getElementById('watts').value = '';
+        document.getElementById('nombre').focus();
         actualizarUI();
-        document.getElementById('nombre').value = ''; document.getElementById('watts').value = ''; document.getElementById('nombre').focus();
     }
 
     function eliminarEquipo(id) {
@@ -121,118 +143,115 @@
         actualizarUI();
     }
 
-    function actualizarUI() {
-        const tbody = document.getElementById('listaCargas');
-        tbody.innerHTML = '';
-        let totalPico = 0, totalDiario = 0;
-
-        equipos.forEach(eq => {
-            totalPico += eq.potenciaPico; totalDiario += eq.energiaDiaria;
-            tbody.innerHTML += `<tr><td>${eq.nombre}</td><td>${eq.cantidad}</td><td>${eq.watts} W</td><td>${eq.horas} h</td><td>${eq.potenciaPico} W</td><td>${eq.energiaDiaria} Wh</td><td><button class="delete-btn" onclick="eliminarEquipo(${eq.id})">X</button></td></tr>`;
-        });
-
-        if (equipos.length > 0) document.getElementById('panelCombo').style.display = 'block';
-        else document.getElementById('panelCombo').style.display = 'none';
-        
-        if (equipos.length > 0) generarCombo(totalPico, totalDiario);
+    function limpiarTodo() {
+        if(confirm("¿Seguro que deseas empezar de nuevo?")) {
+            equipos = [];
+            document.getElementById('nombre').value = '';
+            document.getElementById('cantidad').value = '1';
+            document.getElementById('watts').value = '';
+            document.getElementById('horas').value = '';
+            actualizarUI();
+        }
     }
 
-    function generarCombo(totalPico, totalDiario) {
-        // --- 1. COHERENCIA DEL INVERSOR Y VOLTAJE ---
-        let inversorMinimo = totalPico * 1.25; 
-        let inversorW = obtenerComercial(inversorMinimo, INVERSORES_COMERCIALES); 
-        
-        let sysVolt = 12;
-        if (inversorW >= 2000 && inversorW < 5000) sysVolt = 24;
-        if (inversorW >= 5000) sysVolt = 48;
-        
-        // --- 2. COHERENCIA DE BATERÍAS (Capacidad vs Tasa de Descarga) ---
-        // A) Baterías necesarias por energía diaria
-        let energiaUtilPorBateria = BATERIA_V * BATERIA_AH * DESCARGA_DIARIA_MAX;
-        let batsPorEnergia = Math.ceil(totalDiario / energiaUtilPorBateria);
-        
-        // B) Baterías necesarias para soportar el JALÓN de corriente del inversor sin dañarse
-        let amperiosMaxInversor = inversorW / sysVolt;
-        let amperajeMaxSoportadoPorRama = BATERIA_AH * TASA_DESCARGA_PICO; // Ej: 200Ah * 0.5 = 100A max por rama
-        let ramasParaleloReq = Math.ceil(amperiosMaxInversor / amperajeMaxSoportadoPorRama);
-        let batsEnSerieReq = sysVolt / BATERIA_V;
-        let batsPorDescarga = ramasParaleloReq * batsEnSerieReq;
+    function actualizarUI() {
+        const lista = document.getElementById('listaCargas');
+        lista.innerHTML = '';
+        let tPico = 0, tEnergia = 0;
+        let textoCargas = "";
 
-        // C) Tomamos el mayor de los dos (Coherencia estricta)
-        let totalBaterias = Math.max(batsPorEnergia, batsPorDescarga);
-        
-        // Forzamos a múltiplos del voltaje del sistema para poder armar el banco
-        totalBaterias = Math.ceil(totalBaterias / batsEnSerieReq) * batsEnSerieReq;
-        if(totalBaterias === 0) totalBaterias = batsEnSerieReq;
+        equipos.forEach(eq => {
+            tPico += eq.pico; tEnergia += eq.energia;
+            textoCargas += `- ${eq.cantidad}x ${eq.nombre} (${eq.watts}W, ${eq.horas}h/día)\n`;
+            
+            lista.innerHTML += `
+                <div class="item-card">
+                    <div class="item-info">
+                        <h4>${eq.nombre}</h4>
+                        <p>Cant: ${eq.cantidad} | ${eq.watts}W c/u | ${eq.horas}h/día</p>
+                    </div>
+                    <button class="btn-delete" onclick="eliminarEquipo(${eq.id})">X</button>
+                </div>
+            `;
+        });
 
-        let notaBateria = totalBaterias === batsPorDescarga && batsPorDescarga > batsPorEnergia ? 
-            "⚠️ Banco dimensionado por pico de corriente del inversor, no solo por consumo diario." : 
-            "Dimensionado estándar por consumo diario.";
+        if (equipos.length > 0) {
+            document.getElementById('areaResultados').style.display = 'block';
+            generarComboMobile(tPico, tEnergia, textoCargas);
+        } else {
+            document.getElementById('areaResultados').style.display = 'none';
+        }
+    }
 
-        // --- 3. COHERENCIA DE PANELES Y CONTROLADOR ---
-        let wattsPanelesRequeridos = (totalDiario / HORAS_SOL_PICO) * 1.3; 
-        let cantPaneles = Math.max(1, Math.ceil(wattsPanelesRequeridos / POTENCIA_PANEL));
+    function generarComboMobile(tPico, tEnergia, textoCargas) {
+        let invW = getInversor(tPico * 1.25);
+        let sysV = invW < 2000 ? 12 : (invW < 5000 ? 24 : 48);
         
-        let amperiosControladorMin = Math.ceil((cantPaneles * POTENCIA_PANEL) / sysVolt);
-        let controladorA = obtenerComercial(amperiosControladorMin, [20, 30, 40, 60, 80, 100]);
-        let esHibrido = inversorW >= 3000;
-        
-        let textoControlador = esHibrido ? 
-            `MPPT Integrado en el Inversor (${controladorA}A Req.)` : 
-            `Controlador MPPT Externo de ${controladorA}A`;
+        let batsEnergia = Math.ceil(tEnergia / (BATERIA_V * BATERIA_AH * 0.5));
+        let batsDescarga = Math.ceil((invW/sysV) / (BATERIA_AH * 0.5)) * (sysV/12);
+        let batsReq = Math.max(batsEnergia, batsDescarga);
+        batsReq = Math.ceil(batsReq / (sysV/12)) * (sysV/12);
+        if(batsReq === 0) batsReq = sysV/12;
 
-        // --- 4. PROTECCIONES (BREAKERS) COHERENTES ---
-        let breakerPaneles = obtenerComercial(((cantPaneles * POTENCIA_PANEL) / sysVolt) * 1.25, BREAKERS_COMERCIALES);
-        let breakerBaterias = obtenerComercial((inversorW / sysVolt) * 1.25, BREAKERS_COMERCIALES);
-        let breakerAC = obtenerComercial((inversorW / 120) * 1.25, BREAKERS_COMERCIALES);
-
-        document.getElementById('sys-volt').innerText = `${sysVolt}V`;
-        const lista = document.getElementById('listaCombo');
+        let panReq = Math.max(1, Math.ceil(((tEnergia / HORAS_SOL_PICO) * 1.3) / POTENCIA_PANEL));
+        let ctrlA = getBreaker(((panReq * POTENCIA_PANEL) / sysV));
+        let esHib = invW >= 3000;
         
-        lista.innerHTML = `
-            <li>
-                <div>
-                    <strong>⚡ Inversor DC/AC</strong>
-                    <span class="sub-text">Soporta pico y margen de seguridad de 25%.</span>
-                </div>
-                <div class="badge">${inversorW}W a ${sysVolt}V</div>
-            </li>
-            <li>
-                <div>
-                    <strong>🔋 Banco de Baterías</strong>
-                    <span class="sub-text">Baterías ${BATERIA_V}V ${BATERIA_AH}Ah. Arreglo para ${sysVolt}V.</span>
-                    <span class="logic-note">${notaBateria}</span>
-                </div>
-                <div class="badge">${totalBaterias} Und(s)</div>
-            </li>
-            <li>
-                <div>
-                    <strong>☀️ Paneles Solares</strong>
-                    <span class="sub-text">Potencia nominal de ${POTENCIA_PANEL}W para recuperar la energía en ${HORAS_SOL_PICO}h.</span>
-                </div>
-                <div class="badge">${cantPaneles} Und(s)</div>
-            </li>
-            <li>
-                <div>
-                    <strong>🎛️ Controlador de Carga</strong>
-                    <span class="sub-text">Coherente con los paneles a ${sysVolt}V.</span>
-                </div>
-                <div class="badge">${textoControlador}</div>
-            </li>
-            <li>
-                <div>
-                    <strong>🛡️ Protecciones Integradas (Breakers)</strong>
-                    <span class="sub-text">
-                        • DC Paneles: ${breakerPaneles}A<br>
-                        • DC Baterías: ${breakerBaterias}A<br>
-                        • AC Salida/ATS: ${breakerAC}A
-                    </span>
-                </div>
-                <div class="badge">Kit de 3 Breakers</div>
-            </li>
+        let brkPan = getBreaker(((panReq * POTENCIA_PANEL) / sysV) * 1.25);
+        let brkBat = getBreaker((invW / sysV) * 1.25);
+        let brkAC = getBreaker((invW / 120) * 1.25);
+
+        document.getElementById('sys-volt').innerText = `${sysV}V`;
+        
+        // Render en HTML
+        document.getElementById('listaCombo').innerHTML = `
+            <li><span class="combo-title">⚡ Inversor DC/AC</span><span class="combo-desc">Onda Senoidal Pura a 120V</span><span class="combo-qty">1 Und x ${invW}W</span></li>
+            <li><span class="combo-title">🔋 Banco Baterías</span><span class="combo-desc">Gel/Litio ${BATERIA_V}V ${BATERIA_AH}Ah</span><span class="combo-qty">${batsReq} Und(s)</span></li>
+            <li><span class="combo-title">☀️ Paneles Solares</span><span class="combo-desc">Placas de ${POTENCIA_PANEL}W</span><span class="combo-qty">${panReq} Und(s)</span></li>
+            <li><span class="combo-title">🎛️ Controlador / ATS</span><span class="combo-desc">${esHib ? 'MPPT y Transfer Integrados en Inversor' : `Controlador ${ctrlA}A y Transfer Externo`}</span><span class="combo-qty">Requerido</span></li>
+            <li><span class="combo-title">🛡️ Kit de Protecciones</span><span class="combo-desc">Breakers DC (${brkPan}A, ${brkBat}A) y AC (${brkAC}A)</span><span class="combo-qty">1 Kit Completo</span></li>
+            <li><span class="combo-title">🔌 Cableado Solar</span><span class="combo-desc">Cable UV + Conectores MC4</span><span class="combo-qty">30m + ${panReq} Pares</span></li>
         `;
+
+        // Generar Texto para Compartir
+        textoReporteGlobal = 
+`☀️ PRESUPUESTO - COMBO SOLAR ☀️
+
+📋 EQUIPOS A RESPALDAR:
+${textoCargas}
+📦 COMBO REQUERIDO (Sistema ${sysV}V):
+- 1x Inversor ${invW}W (Onda Pura 120V)
+- ${batsReq}x Baterías de ${BATERIA_V}V ${BATERIA_AH}Ah
+- ${panReq}x Paneles Solares de ${POTENCIA_PANEL}W
+- ${esHib ? 'Inversor Híbrido (MPPT y Transfer integrados)' : `Controlador ${ctrlA}A + Transfer ATS`}
+- Kit de Protecciones (Breakers DC y AC)
+- 30mts Cable Solar + ${panReq} pares de conectores MC4
+
+⚠️ Cálculo referencial en base a exigencia diaria.`;
+    }
+
+    // Funciones de Compartir y Exportar
+    function encodeTexto() { return encodeURIComponent(textoReporteGlobal); }
+
+    function enviarWA() {
+        window.open(`https://wa.me/?text=${encodeTexto()}`, '_blank');
+    }
+
+    function enviarCorreo() {
+        window.open(`mailto:?subject=Cálculo Combo Solar&body=${encodeTexto()}`, '_blank');
+    }
+
+    function descargarTxt() {
+        const blob = new Blob([textoReporteGlobal], { type: "text/plain;charset=utf-8" });
+        const enlace = document.createElement("a");
+        enlace.href = URL.createObjectURL(blob);
+        enlace.download = "Presupuesto_Solar.txt";
+        document.body.appendChild(enlace);
+        enlace.click();
+        document.body.removeChild(enlace);
     }
 </script>
 
 </body>
-</html>
+    </html>
+    
