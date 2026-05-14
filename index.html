@@ -3,27 +3,27 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Cotizador Solar Pro - Catálogo Real</title>
+    <title>Cotizador Solar Pro - Facturación</title>
     <style>
         :root {
-            --primary: #0ea5e9;
-            --secondary: #0284c7;
-            --bg: #f8fafc;
+            --primary: #047857; /* Verde empresarial */
+            --secondary: #059669;
+            --bg: #f0fdf4;
             --surface: #ffffff;
             --text: #0f172a;
-            --border: #e2e8f0;
+            --border: #d1fae5;
             --danger: #ef4444;
             --wa: #25D366;
             --print: #4f46e5;
         }
         * { box-sizing: border-box; }
         body { font-family: system-ui, -apple-system, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 12px; padding-bottom: 80px; }
-        .container { max-width: 600px; margin: 0 auto; }
+        .container { max-width: 650px; margin: 0 auto; }
         
-        h1 { font-size: 1.4rem; color: var(--secondary); text-align: center; margin-bottom: 15px; }
+        h1 { font-size: 1.4rem; color: var(--primary); text-align: center; margin-bottom: 15px; }
         
         .card-form { background: var(--surface); padding: 16px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); margin-bottom: 16px; border: 1px solid var(--border); }
-        .section-title { margin-top: 0; margin-bottom: 12px; font-size: 1.05rem; color: var(--secondary); border-bottom: 2px solid var(--primary); padding-bottom: 8px; }
+        .section-title { margin-top: 0; margin-bottom: 12px; font-size: 1.05rem; color: var(--primary); border-bottom: 2px solid var(--primary); padding-bottom: 8px; }
         .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; }
         .form-group { display: flex; flex-direction: column; gap: 4px; }
         .form-group.full { grid-column: span 2; }
@@ -31,7 +31,7 @@
         input { width: 100%; padding: 12px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 16px; background: #f8fafc; }
         input:focus { outline: none; border-color: var(--primary); background: white; }
         
-        button.btn-add { width: 100%; padding: 14px; background: var(--primary); color: white; border: none; border-radius: 8px; font-size: 1rem; font-weight: bold; cursor: pointer; box-shadow: 0 4px 6px rgba(14, 165, 233, 0.2); }
+        button.btn-add { width: 100%; padding: 14px; background: var(--primary); color: white; border: none; border-radius: 8px; font-size: 1rem; font-weight: bold; cursor: pointer; box-shadow: 0 4px 6px rgba(4, 120, 87, 0.2); }
         button.btn-add:active { background: var(--secondary); transform: translateY(1px); }
 
         .items-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 20px; }
@@ -41,13 +41,22 @@
         .btn-delete { background: #fee2e2; color: var(--danger); border: none; padding: 8px 12px; border-radius: 6px; font-weight: bold; cursor: pointer; }
 
         .results-panel { background: white; padding: 16px; border-radius: 12px; border: 2px solid var(--primary); margin-top: 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
-        .results-panel h2 { margin-top: 0; font-size: 1.1rem; color: var(--secondary); border-bottom: 1px dashed var(--border); padding-bottom: 10px; }
+        .results-header { display: flex; justify-content: space-between; align-items: flex-end; border-bottom: 1px dashed var(--border); padding-bottom: 10px; margin-bottom: 10px; }
+        .results-header h2 { margin: 0; font-size: 1.1rem; color: var(--primary); }
+        .date-time { font-size: 0.75rem; color: #64748b; text-align: right; }
+
         .combo-list { list-style: none; padding: 0; margin: 0; }
         .combo-list li { padding: 12px 0; border-bottom: 1px solid #f1f5f9; display: flex; flex-direction: column; gap: 4px; }
         .combo-list li:last-child { border-bottom: none; }
+        .row-top { display: flex; justify-content: space-between; align-items: flex-start; }
         .combo-title { font-weight: 800; font-size: 0.9rem; color: #1e293b; }
+        .combo-price { font-weight: bold; color: var(--primary); font-size: 0.95rem; }
         .combo-desc { font-size: 0.8rem; color: #64748b; }
-        .combo-qty { color: var(--secondary); font-weight: 900; font-size: 0.95rem; margin-top: 2px; }
+        .combo-qty { color: #475569; font-weight: 600; font-size: 0.85rem; margin-top: 2px; }
+
+        .total-box { margin-top: 15px; padding: 16px; background: #ecfdf5; border-radius: 8px; text-align: right; border: 1px solid var(--primary); }
+        .total-box p { margin: 0 0 5px 0; font-size: 0.9rem; color: #475569; }
+        .total-box h3 { margin: 0; font-size: 1.5rem; color: var(--primary); }
 
         .action-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 16px; }
         .btn-action { padding: 12px; border: none; border-radius: 8px; font-size: 0.85rem; font-weight: bold; color: white; display: flex; align-items: center; justify-content: center; gap: 6px; cursor: pointer; }
@@ -63,14 +72,15 @@
             input { border: none !important; background: transparent !important; padding: 0; margin: 0; font-weight: bold; color: black; }
             .btn-add, .btn-delete, .action-grid { display: none !important; }
             .results-panel { border: 2px solid black; box-shadow: none; }
-            .item-card { border: 1px solid #ccc; border-left: 3px solid black; }
+            .total-box { border: 2px solid black; background: transparent; }
+            .total-box h3, .combo-price, h1, .section-title, .results-header h2 { color: black !important; }
         }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h1>☀️ Cotizador de Combos Solares</h1>
+    <h1>☀️ Presupuesto Solar Profesional</h1>
     
     <div class="card-form">
         <h3 class="section-title">👤 Datos del Cliente</h3>
@@ -144,8 +154,16 @@
 
     <div id="areaResultados" style="display: none;">
         <div class="results-panel">
-            <h2>📦 Combo Diseñado a la Medida (<span id="sys-volt"></span>)</h2>
+            <div class="results-header">
+                <h2>📦 Cotización de Equipos (<span id="sys-volt"></span>)</h2>
+                <div class="date-time" id="fechaEmision">--</div>
+            </div>
             <ul class="combo-list" id="listaCombo"></ul>
+            
+            <div class="total-box">
+                <p>Monto Exento de Instalación</p>
+                <h3>TOTAL: $<span id="granTotal">0.00</span></h3>
+            </div>
         </div>
 
         <div class="action-grid">
@@ -169,50 +187,49 @@
         "Lavadora grande": 800, "Microondas": 1000, "Freidora de aire": 1500
     };
 
+    // BASE DE DATOS ACTUALIZADA CON PRECIOS DEL CATÁLOGO
     const DB_INVERSORES = [
-        { model: "UPS Power House Begprod 300W", w: 300, v: 12 },
-        { model: "UPS Power House Begprod 700W (FT-B700W)", w: 700, v: 12 },
-        { model: "UPS Power House Begprod 1000W / Must 1KW", w: 1000, v: 12 },
-        { model: "Inversor Must / Begprod 1.5KW", w: 1500, v: 24 },
-        { model: "Inversor Híbrido Must / Growatt 3KW", w: 3000, v: 24 },
-        { model: "Inversor Híbrido Begprod 4KW (EP30-4048PRO)", w: 4000, v: 48 },
-        { model: "Inversor Híbrido Must / Growatt 6KW", w: 6000, v: 48 },
-        { model: "Inversor Híbrido Must 12KW Fase Dividida", w: 12000, v: 48 }
+        { model: "UPS Power House Begprod 300W", w: 300, v: 12, precio: 220 },
+        { model: "UPS Power House Begprod 700W (FT-B700W)", w: 700, v: 12, precio: 265 },
+        { model: "UPS Power House Must 1KW", w: 1000, v: 12, precio: 290 },
+        { model: "Inversor Must / Begprod 1.5KW", w: 1500, v: 24, precio: 391 },
+        { model: "Inversor Híbrido Must 3KW", w: 3000, v: 24, precio: 681 },
+        { model: "Inversor Híbrido Begprod 4KW", w: 4000, v: 48, precio: 890 },
+        { model: "Inversor Híbrido Begprod 6KW", w: 6000, v: 48, precio: 1421 },
+        { model: "Inversor Híbrido Must 12KW Fase Dividida", w: 12000, v: 48, precio: 3045 }
     ];
 
     const DB_BATERIAS = [
-        { model: "MCA 12V 9Ah (GEL)", ah: 9, v: 12 },
-        { model: "MCA 12V 12Ah (GEL)", ah: 12, v: 12 },
-        { model: "MCA 12V 26Ah (GEL)", ah: 26, v: 12 },
-        { model: "MCA 12V 40Ah (GEL)", ah: 40, v: 12 },
-        { model: "MCA 12V 70Ah (GEL)", ah: 70, v: 12 },
-        { model: "MCA 12V 100Ah (GEL)", ah: 100, v: 12 },
-        { model: "MCA 12V 150Ah (GEL)", ah: 150, v: 12 },
-        { model: "MCA 12V 200Ah (GEL)", ah: 200, v: 12 },
-        { model: "MCA 12V 260Ah (GEL)", ah: 260, v: 12 }
+        { model: "MCA 12V 9Ah (GEL)", ah: 9, v: 12, precio: 26 },
+        { model: "MCA 12V 12Ah (GEL)", ah: 12, v: 12, precio: 31 },
+        { model: "MCA 12V 26Ah (GEL)", ah: 26, v: 12, precio: 94 },
+        { model: "MCA 12V 40Ah (GEL)", ah: 40, v: 12, precio: 145 },
+        { model: "MCA 12V 70Ah (GEL)", ah: 70, v: 12, precio: 261 },
+        { model: "MCA 12V 100Ah (GEL)", ah: 100, v: 12, precio: 270 },
+        { model: "MCA 12V 150Ah (GEL)", ah: 150, v: 12, precio: 377 },
+        { model: "MCA 12V 200Ah (GEL)", ah: 200, v: 12, precio: 507 },
+        { model: "MCA 12V 260Ah (GEL)", ah: 260, v: 12, precio: 620 }
     ];
 
     const DB_PANELES = [
-        { model: "Panel Begprod 25W", w: 25 },
-        { model: "Panel Begprod 50W", w: 50 },
-        { model: "Panel Begprod 100W", w: 100 },
-        { model: "Panel Begprod 160W", w: 160 },
-        { model: "Panel Begprod 300W", w: 300 },
-        { model: "Panel Begprod 450W", w: 450 },
-        { model: "Panel Begprod 585W", w: 585 }
+        { model: "Panel Begprod 25W", w: 25, precio: 26 },
+        { model: "Panel Begprod 50W", w: 50, precio: 40 },
+        { model: "Panel Begprod 100W", w: 100, precio: 70 },
+        { model: "Panel Begprod 160W", w: 160, precio: 95 },
+        { model: "Panel Begprod 300W", w: 300, precio: 159 },
+        { model: "Panel Begprod 450W", w: 450, precio: 215 },
+        { model: "Panel Begprod 585W", w: 585, precio: 290 }
     ];
 
     const DB_CONTROLADORES = [
-        { model: "Controlador PWM Begprod 20A", a: 20 },
-        { model: "Controlador PWM Begprod 30A", a: 30 },
-        { model: "Controlador PWM Begprod 40A", a: 40 },
-        { model: "Controlador MPPT Begprod 50A", a: 50 },
-        { model: "Controlador MPPT Must/Begprod 60A", a: 60 },
-        { model: "Controlador MPPT Must 80A", a: 80 },
-        { model: "Controlador MPPT Must 100A", a: 100 }
+        { model: "Controlador PWM Begprod 20A", a: 20, precio: 15 },
+        { model: "Controlador PWM Begprod 30A", a: 30, precio: 16 },
+        { model: "Controlador PWM Begprod 40A", a: 40, precio: 27 },
+        { model: "Controlador MPPT CM 50A", a: 50, precio: 230 },
+        { model: "Controlador MPPT Must 60A", a: 60, precio: 210 },
+        { model: "Controlador MPPT Must 80A", a: 80, precio: 230 },
+        { model: "Controlador MPPT Must 100A", a: 100, precio: 245 }
     ];
-
-    const DB_BREAKERS = [10, 25, 32, 40, 63, 100, 125];
 
     function autoCompletarWatts() {
         const nombreIngresado = document.getElementById('nombre').value;
@@ -283,11 +300,22 @@
         let cCedula = document.getElementById('clienteCedula').value || "No especificada";
         let cTel = document.getElementById('clienteTelefono').value || "No especificado";
 
+        // FECHA Y HORA LOCAL
+        let fechaActual = new Date();
+        let strFecha = fechaActual.toLocaleDateString('es-VE');
+        let strHora = fechaActual.toLocaleTimeString('es-VE', { hour: '2-digit', minute: '2-digit' });
+        document.getElementById('fechaEmision').innerHTML = `<strong>Fecha:</strong> ${strFecha}<br><strong>Hora:</strong> ${strHora}`;
+
+        // VARIABLES DE TOTALES
+        let granTotal = 0;
+
         // 1. INVERSOR
         let picoRequerido = tPico * 1.25;
         let inversorSeleccionado = DB_INVERSORES.find(inv => inv.w >= picoRequerido) || DB_INVERSORES[DB_INVERSORES.length - 1];
         let sysV = inversorSeleccionado.v;
         let cantInversores = Math.ceil(picoRequerido / inversorSeleccionado.w);
+        let subtotalInversor = cantInversores * inversorSeleccionado.precio;
+        granTotal += subtotalInversor;
         
         // 2. BATERÍAS
         let whRequeridos = tEnergia / 0.5;
@@ -303,16 +331,13 @@
         
         let bateriasEnSerie = sysV / 12;
         let totalBaterias = cantBateriasParalelo * bateriasEnSerie;
+        let subtotalBateria = totalBaterias * bateriaSeleccionada.precio;
+        granTotal += subtotalBateria;
 
-        // 3. PANELES (Nueva Lógica: Regla de 8 Horas + Consumo)
-        // A) ¿Cuántos watts necesito para reponer el consumo diario?
+        // 3. PANELES (Regla 8 Hrs)
         let wattsPorConsumo = (tEnergia / 4.5) * 1.3;
-        
-        // B) ¿Cuántos watts necesito para cargar toda la batería instalada en max 8 horas?
         let capacidadTotalWh = totalBaterias * bateriaSeleccionada.ah * sysV;
         let wattsPorLlenadoBateria = (capacidadTotalWh / 8) * 1.3;
-        
-        // C) El algoritmo exige la cantidad mayor para proteger el sistema
         let wattsPanelesRequeridos = Math.max(wattsPorConsumo, wattsPorLlenadoBateria);
 
         let panelSeleccionado;
@@ -326,11 +351,14 @@
             panelSeleccionado = DB_PANELES.find(p => p.w >= 450);
             totalPaneles = Math.ceil(wattsPanelesRequeridos / panelSeleccionado.w);
         }
+        let subtotalPanel = totalPaneles * panelSeleccionado.precio;
+        granTotal += subtotalPanel;
 
         // 4. CONTROLADOR
         let amperiosControladorReq = (totalPaneles * panelSeleccionado.w) / sysV;
         let esHibrido = inversorSeleccionado.w >= 3000;
         let textoControlador = "";
+        let subtotalControlador = 0;
         
         if (esHibrido) {
             textoControlador = "Controlador MPPT Integrado en el Inversor";
@@ -340,42 +368,79 @@
                 let maxCtrl = DB_CONTROLADORES[DB_CONTROLADORES.length - 1];
                 let cantCtrl = Math.ceil(amperiosControladorReq / maxCtrl.a);
                 textoControlador = `${cantCtrl}x ${maxCtrl.model}`;
+                subtotalControlador = cantCtrl * maxCtrl.precio;
             } else {
                 textoControlador = `1x ${controladorSeleccionado.model}`;
+                subtotalControlador = controladorSeleccionado.precio;
             }
         }
+        granTotal += subtotalControlador;
 
-        // 5. BREAKERS
-        let getBreaker = (amps) => DB_BREAKERS.find(b => b >= amps) || 125;
-        let brkPan = getBreaker(amperiosControladorReq * 1.25);
-        let brkBat = getBreaker((inversorSeleccionado.w / sysV) * 1.25);
-        let brkAC = getBreaker((inversorSeleccionado.w / 120) * 1.25);
+        // 5. ACCESORIOS FIJOS (Breakers y Cables)
+        let precioKitBreakers = 30.00;
+        let precioKitCables = 60.00;
+        granTotal += (precioKitBreakers + precioKitCables);
 
         document.getElementById('sys-volt').innerText = `${sysV}V`;
+        document.getElementById('granTotal').innerText = granTotal.toFixed(2);
         
-        document.getElementById('listaCombo').innerHTML = `
-            <li><span class="combo-title">⚡ Equipo DC/AC</span>
-                <span class="combo-desc">Sistema de Voltaje a ${sysV}V</span>
-                <span class="combo-qty">${cantInversores}x ${inversorSeleccionado.model}</span></li>
-            <li><span class="combo-title">🔋 Almacenamiento</span>
-                <span class="combo-desc">Arreglo para suministrar energía de respaldo</span>
-                <span class="combo-qty">${totalBaterias}x ${bateriaSeleccionada.model}</span></li>
-            <li><span class="combo-title">☀️ Generación Solar</span>
-                <span class="combo-desc">Módulos Solares (Pico Total: ${totalPaneles * panelSeleccionado.w}W)</span>
-                <span class="combo-qty">${totalPaneles}x ${panelSeleccionado.model}</span></li>
-            <li><span class="combo-title">🎛️ Controlador de Carga</span>
-                <span class="combo-desc">Gestión de energía fotovoltaica</span>
-                <span class="combo-qty">${textoControlador}</span></li>
-            <li><span class="combo-title">🛡️ Protecciones (Breakers Delixi/Chint)</span>
-                <span class="combo-desc">Breakers DC (${brkPan}A, ${brkBat}A) y AC (${brkAC}A)</span>
-                <span class="combo-qty">Kit de Protecciones Requerido</span></li>
-            <li><span class="combo-title">🔌 Accesorios</span>
-                <span class="combo-desc">Cable Solar, Conectores MC4, Cables Puente (Batería)</span>
-                <span class="combo-qty">Según metraje en instalación</span></li>
+        // DIBUJAR LISTA CON PRECIOS
+        let htmlList = `
+            <li>
+                <div class="row-top">
+                    <span class="combo-title">⚡ ${inversorSeleccionado.model}</span>
+                    <span class="combo-price">$${subtotalInversor.toFixed(2)}</span>
+                </div>
+                <span class="combo-qty">${cantInversores} Und(s) a $${inversorSeleccionado.precio.toFixed(2)} c/u</span>
+            </li>
+            <li>
+                <div class="row-top">
+                    <span class="combo-title">🔋 Batería ${bateriaSeleccionada.model}</span>
+                    <span class="combo-price">$${subtotalBateria.toFixed(2)}</span>
+                </div>
+                <span class="combo-qty">${totalBaterias} Und(s) a $${bateriaSeleccionada.precio.toFixed(2)} c/u</span>
+            </li>
+            <li>
+                <div class="row-top">
+                    <span class="combo-title">☀️ ${panelSeleccionado.model}</span>
+                    <span class="combo-price">$${subtotalPanel.toFixed(2)}</span>
+                </div>
+                <span class="combo-qty">${totalPaneles} Und(s) a $${panelSeleccionado.precio.toFixed(2)} c/u</span>
+            </li>`;
+
+        if(!esHibrido) {
+            htmlList += `
+            <li>
+                <div class="row-top">
+                    <span class="combo-title">🎛️ ${textoControlador}</span>
+                    <span class="combo-price">$${subtotalControlador.toFixed(2)}</span>
+                </div>
+                <span class="combo-qty">Requerido para el sistema</span>
+            </li>`;
+        }
+
+        htmlList += `
+            <li>
+                <div class="row-top">
+                    <span class="combo-title">🛡️ Kit de Protecciones (Breakers DC y AC)</span>
+                    <span class="combo-price">$${precioKitBreakers.toFixed(2)}</span>
+                </div>
+                <span class="combo-qty">1 Kit Completo Referencial</span>
+            </li>
+            <li>
+                <div class="row-top">
+                    <span class="combo-title">🔌 Kit Cableado y Conectores MC4</span>
+                    <span class="combo-price">$${precioKitCables.toFixed(2)}</span>
+                </div>
+                <span class="combo-qty">Material base instalación</span>
+            </li>
         `;
+
+        document.getElementById('listaCombo').innerHTML = htmlList;
 
         textoReporteGlobal = 
 `☀️ PRESUPUESTO - ENERGÍA SOLAR ☀️
+Fecha: ${strFecha} - Hora: ${strHora}
 
 👤 DATOS DEL CLIENTE
 Nombre: ${cNombre}
@@ -384,15 +449,17 @@ Teléfono: ${cTel}
 
 📋 EQUIPOS A RESPALDAR:
 ${textoCargas}
-📦 COMBO REQUERIDO (Sistema ${sysV}V):
-- ${cantInversores}x ${inversorSeleccionado.model}
-- ${totalBaterias}x ${bateriaSeleccionada.model}
-- ${totalPaneles}x ${panelSeleccionado.model}
-- ${textoControlador}
-- Protecciones recomendadas: Breaker DC Paneles ${brkPan}A, DC Batería ${brkBat}A, AC Salida ${brkAC}A
-- Accesorios: Cable Solar PV, pares MC4 y cables puente.
+📦 COTIZACIÓN (Sistema ${sysV}V):
+- ${cantInversores}x ${inversorSeleccionado.model} ($${subtotalInversor.toFixed(2)})
+- ${totalBaterias}x ${bateriaSeleccionada.model} ($${subtotalBateria.toFixed(2)})
+- ${totalPaneles}x ${panelSeleccionado.model} ($${subtotalPanel.toFixed(2)})
+${!esHibrido ? `- ${textoControlador} ($${subtotalControlador.toFixed(2)})\n` : '- Controlador MPPT (Integrado)\n'}- Kit Protecciones y Breakers ($${precioKitBreakers.toFixed(2)})
+- Kit Cables y Conectores ($${precioKitCables.toFixed(2)})
 
-⚠️ Diseño calculado para garantizar recarga segura en menos de 8 hrs de sol.`;
+💰 GRAN TOTAL: $${granTotal.toFixed(2)}
+(Monto exento de instalación)
+
+⚠️ Presupuesto referencial basado en consumos suministrados.`;
     }
 
     function enviarWA() {
