@@ -6,7 +6,7 @@
     <title>Cotizador Solar Pro - Facturación</title>
     <style>
         :root {
-            --primary: #047857; /* Verde empresarial */
+            --primary: #047857;
             --secondary: #059669;
             --bg: #f0fdf4;
             --surface: #ffffff;
@@ -187,16 +187,18 @@
         "Lavadora grande": 800, "Microondas": 1000, "Freidora de aire": 1500
     };
 
-    // BASE DE DATOS ACTUALIZADA CON PRECIOS DEL CATÁLOGO
+    // --- BASE DE DATOS CORREGIDA (Híbridos de baja gama NO traen controlador solar) ---
     const DB_INVERSORES = [
-        { model: "UPS Power House Begprod 300W", w: 300, v: 12, precio: 220 },
-        { model: "UPS Power House Begprod 700W (FT-B700W)", w: 700, v: 12, precio: 265 },
-        { model: "UPS Power House Must 1KW", w: 1000, v: 12, precio: 290 },
-        { model: "Inversor Must / Begprod 1.5KW", w: 1500, v: 24, precio: 391 },
-        { model: "Inversor Híbrido Must 3KW", w: 3000, v: 24, precio: 681 },
-        { model: "Inversor Híbrido Begprod 4KW", w: 4000, v: 48, precio: 890 },
-        { model: "Inversor Híbrido Begprod 6KW", w: 6000, v: 48, precio: 1421 },
-        { model: "Inversor Híbrido Must 12KW Fase Dividida", w: 12000, v: 48, precio: 3045 }
+        { model: "UPS Power House Begprod 300W", w: 300, v: 12, precio: 220, hibrido: false },
+        { model: "Inversor Híbrido Gama Entrada 500W", w: 500, v: 12, precio: 80, hibrido: false }, // Corregido a false para requerir controlador
+        { model: "UPS Power House Begprod 700W (FT-B700W)", w: 700, v: 12, precio: 265, hibrido: false },
+        { model: "Inversor Híbrido Gama Entrada 1000W", w: 1000, v: 12, precio: 120, hibrido: false }, // Corregido a false para requerir controlador
+        { model: "UPS Power House Must 1KW (Premium)", w: 1000, v: 12, precio: 290, hibrido: false },
+        { model: "Inversor Must / Begprod 1.5KW", w: 1500, v: 24, precio: 391, hibrido: false },
+        { model: "Inversor Híbrido Must 3KW", w: 3000, v: 24, precio: 681, hibrido: true },
+        { model: "Inversor Híbrido Begprod 4KW", w: 4000, v: 48, precio: 890, hibrido: true },
+        { model: "Inversor Híbrido Begprod 6KW", w: 6000, v: 48, precio: 1421, hibrido: true },
+        { model: "Inversor Híbrido Must 12KW Fase Dividida", w: 12000, v: 48, precio: 3045, hibrido: true }
     ];
 
     const DB_BATERIAS = [
@@ -306,7 +308,6 @@
         let strHora = fechaActual.toLocaleTimeString('es-VE', { hour: '2-digit', minute: '2-digit' });
         document.getElementById('fechaEmision').innerHTML = `<strong>Fecha:</strong> ${strFecha}<br><strong>Hora:</strong> ${strHora}`;
 
-        // VARIABLES DE TOTALES
         let granTotal = 0;
 
         // 1. INVERSOR
@@ -354,14 +355,17 @@
         let subtotalPanel = totalPaneles * panelSeleccionado.precio;
         granTotal += subtotalPanel;
 
-        // 4. CONTROLADOR
+        // 4. CONTROLADOR (Lógica Corregida)
         let amperiosControladorReq = (totalPaneles * panelSeleccionado.w) / sysV;
-        let esHibrido = inversorSeleccionado.w >= 3000;
+        
+        // Verificamos explícitamente en la base de datos si trae controlador integrado
+        let esHibridoConControlador = inversorSeleccionado.hibrido === true; 
+        
         let textoControlador = "";
         let subtotalControlador = 0;
         
-        if (esHibrido) {
-            textoControlador = "Controlador MPPT Integrado en el Inversor";
+        if (esHibridoConControlador) {
+            textoControlador = "Controlador MPPT / PWM Integrado en Inversor";
         } else {
             let controladorSeleccionado = DB_CONTROLADORES.find(c => c.a >= amperiosControladorReq);
             if(!controladorSeleccionado) {
@@ -408,7 +412,7 @@
                 <span class="combo-qty">${totalPaneles} Und(s) a $${panelSeleccionado.precio.toFixed(2)} c/u</span>
             </li>`;
 
-        if(!esHibrido) {
+        if(!esHibridoConControlador) {
             htmlList += `
             <li>
                 <div class="row-top">
@@ -416,6 +420,15 @@
                     <span class="combo-price">$${subtotalControlador.toFixed(2)}</span>
                 </div>
                 <span class="combo-qty">Requerido para el sistema</span>
+            </li>`;
+        } else {
+             htmlList += `
+            <li>
+                <div class="row-top">
+                    <span class="combo-title">🎛️ ${textoControlador}</span>
+                    <span class="combo-price">$0.00</span>
+                </div>
+                <span class="combo-qty">Ahorro incluido en equipo Híbrido</span>
             </li>`;
         }
 
@@ -453,7 +466,7 @@ ${textoCargas}
 - ${cantInversores}x ${inversorSeleccionado.model} ($${subtotalInversor.toFixed(2)})
 - ${totalBaterias}x ${bateriaSeleccionada.model} ($${subtotalBateria.toFixed(2)})
 - ${totalPaneles}x ${panelSeleccionado.model} ($${subtotalPanel.toFixed(2)})
-${!esHibrido ? `- ${textoControlador} ($${subtotalControlador.toFixed(2)})\n` : '- Controlador MPPT (Integrado)\n'}- Kit Protecciones y Breakers ($${precioKitBreakers.toFixed(2)})
+${!esHibridoConControlador ? `- ${textoControlador} ($${subtotalControlador.toFixed(2)})\n` : '- Controlador MPPT/PWM (Ahorro Integrado)\n'}- Kit Protecciones y Breakers ($${precioKitBreakers.toFixed(2)})
 - Kit Cables y Conectores ($${precioKitCables.toFixed(2)})
 
 💰 GRAN TOTAL: $${granTotal.toFixed(2)}
