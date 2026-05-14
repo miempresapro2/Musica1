@@ -94,18 +94,31 @@
         <h3 class="section-title">🔌 Cargas a Respaldar</h3>
         <div class="form-group full" style="margin-bottom: 10px;">
             <label>Electrodoméstico</label>
-            <input type="text" id="nombre" list="listaSugerencias" placeholder="Ej. Router, Bombillos, Nevera..." oninput="autoCompletarWatts()">
+            <input type="text" id="nombre" list="listaSugerencias" placeholder="Escribe para buscar..." oninput="autoCompletarWatts()">
             
             <datalist id="listaSugerencias">
-                <option value="Bombillo LED 9W/10W">
-                <option value="Router WiFi + Modem">
-                <option value="Ventilador de pedestal">
-                <option value="TV 32 pulgadas">
+                <option value="Bombillo LED">
+                <option value="Carga de celular">
+                <option value="Router / Modem">
+                <option value="OLT (Fibra Óptica)">
+                <option value="Televisor 32 pulgadas">
+                <option value="Ventilador de base">
                 <option value="Laptop">
-                <option value="PC de Escritorio">
-                <option value="Nevera Ejecutiva">
-                <option value="Nevera Mediana / Congelador">
-                <option value="Aire Acondicionado 12000 BTU">
+                <option value="Equipo de sonido">
+                <option value="Nevera pequeña (Ejecutiva)">
+                <option value="Congelador pequeño">
+                <option value="Nevera mediana">
+                <option value="Batidora de mano">
+                <option value="PC de Mesa (Monitor incluido)">
+                <option value="Congelador mediano">
+                <option value="Lavadora pequeña">
+                <option value="Nevera grande (2 puertas)">
+                <option value="Congelador grande">
+                <option value="Licuadora">
+                <option value="Lavadora mediana">
+                <option value="Lavadora grande">
+                <option value="Microondas">
+                <option value="Freidora de aire">
             </datalist>
         </div>
         <div class="form-row">
@@ -147,19 +160,33 @@
     let equipos = [];
     let textoReporteGlobal = "";
 
+    // Catálogo ampliado con consumos promedio en Watts
     const catalogoAproximado = {
-        "Bombillo LED 9W/10W": 10,
-        "Router WiFi + Modem": 15,
-        "Ventilador de pedestal": 60,
-        "TV 32 pulgadas": 45,
+        "Bombillo LED": 10,
+        "Carga de celular": 15,
+        "Router / Modem": 15,
+        "OLT (Fibra Óptica)": 40,
+        "Televisor 32 pulgadas": 45,
+        "Ventilador de base": 60,
         "Laptop": 65,
-        "PC de Escritorio": 250,
-        "Nevera Ejecutiva": 100,
-        "Nevera Mediana / Congelador": 180,
-        "Aire Acondicionado 12000 BTU": 1200
+        "Equipo de sonido": 100,
+        "Nevera pequeña (Ejecutiva)": 100,
+        "Congelador pequeño": 150,
+        "Nevera mediana": 200,
+        "Batidora de mano": 200,
+        "PC de Mesa (Monitor incluido)": 250,
+        "Congelador mediano": 250,
+        "Lavadora pequeña": 300,
+        "Nevera grande (2 puertas)": 350,
+        "Congelador grande": 400,
+        "Licuadora": 400,
+        "Lavadora mediana": 500,
+        "Lavadora grande": 800,
+        "Microondas": 1000,
+        "Freidora de aire": 1500
     };
 
-    // --- BASE DE DATOS CATÁLOGO REAL BEGPROD/MUST/MCA ---
+    // Base de Datos de Catálogo
     const DB_INVERSORES = [
         { model: "UPS Power House Begprod 300W", w: 300, v: 12 },
         { model: "UPS Power House Begprod 700W (FT-B700W)", w: 700, v: 12 },
@@ -172,15 +199,15 @@
     ];
 
     const DB_BATERIAS = [
-        { model: "MCA 12V 9Ah (GEL)", ah: 9, v: 12, tipo: "GEL" },
-        { model: "MCA 12V 12Ah (GEL)", ah: 12, v: 12, tipo: "GEL" },
-        { model: "MCA 12V 26Ah (GEL)", ah: 26, v: 12, tipo: "GEL" },
-        { model: "MCA 12V 40Ah (GEL)", ah: 40, v: 12, tipo: "GEL" },
-        { model: "MCA 12V 70Ah (GEL)", ah: 70, v: 12, tipo: "GEL" },
-        { model: "MCA 12V 100Ah (GEL)", ah: 100, v: 12, tipo: "GEL" },
-        { model: "MCA 12V 150Ah (GEL)", ah: 150, v: 12, tipo: "GEL" },
-        { model: "MCA 12V 200Ah (GEL)", ah: 200, v: 12, tipo: "GEL" },
-        { model: "MCA 12V 260Ah (GEL)", ah: 260, v: 12, tipo: "GEL" }
+        { model: "MCA 12V 9Ah (GEL)", ah: 9, v: 12 },
+        { model: "MCA 12V 12Ah (GEL)", ah: 12, v: 12 },
+        { model: "MCA 12V 26Ah (GEL)", ah: 26, v: 12 },
+        { model: "MCA 12V 40Ah (GEL)", ah: 40, v: 12 },
+        { model: "MCA 12V 70Ah (GEL)", ah: 70, v: 12 },
+        { model: "MCA 12V 100Ah (GEL)", ah: 100, v: 12 },
+        { model: "MCA 12V 150Ah (GEL)", ah: 150, v: 12 },
+        { model: "MCA 12V 200Ah (GEL)", ah: 200, v: 12 },
+        { model: "MCA 12V 260Ah (GEL)", ah: 260, v: 12 }
     ];
 
     const DB_PANELES = [
@@ -209,6 +236,7 @@
         const nombreIngresado = document.getElementById('nombre').value;
         if(catalogoAproximado[nombreIngresado]) {
             document.getElementById('watts').value = catalogoAproximado[nombreIngresado];
+            // Al autocompletar, pasa directo a la casilla de horas para mayor rapidez
             document.getElementById('horas').focus(); 
         }
     }
@@ -274,43 +302,36 @@
         let cCedula = document.getElementById('clienteCedula').value || "No especificada";
         let cTel = document.getElementById('clienteTelefono').value || "No especificado";
 
-        // 1. SELECCIÓN DE INVERSOR
         let picoRequerido = tPico * 1.25;
         let inversorSeleccionado = DB_INVERSORES.find(inv => inv.w >= picoRequerido) || DB_INVERSORES[DB_INVERSORES.length - 1];
         let sysV = inversorSeleccionado.v;
         let cantInversores = Math.ceil(picoRequerido / inversorSeleccionado.w);
         
-        // 2. SELECCIÓN DE BATERÍAS (Inteligente según capacidad y voltaje)
-        let whRequeridos = tEnergia / 0.5; // Descarga 50% GEL
+        let whRequeridos = tEnergia / 0.5;
         let ahRequeridosSistema = whRequeridos / sysV;
         
         let bateriaSeleccionada = DB_BATERIAS.find(bat => bat.ah >= ahRequeridosSistema);
         let cantBateriasParalelo = 1;
         
         if (!bateriaSeleccionada) {
-            // Si supera la batería más grande (260Ah), usamos múltiples de 200Ah o 260Ah
-            bateriaSeleccionada = DB_BATERIAS[DB_BATERIAS.length - 1]; // Toma la MCA 260Ah
+            bateriaSeleccionada = DB_BATERIAS[DB_BATERIAS.length - 1]; 
             cantBateriasParalelo = Math.ceil(ahRequeridosSistema / bateriaSeleccionada.ah);
         }
         
         let bateriasEnSerie = sysV / 12;
         let totalBaterias = cantBateriasParalelo * bateriasEnSerie;
 
-        // 3. SELECCIÓN DE PANELES (Inteligente)
         let wattsPanelesRequeridos = (tEnergia / 4.5) * 1.3;
         let panelSeleccionado;
         let totalPaneles = 1;
 
         if(wattsPanelesRequeridos < 600) {
-            // Para combos pequeños, busca el panel exacto
             panelSeleccionado = DB_PANELES.find(p => p.w >= wattsPanelesRequeridos) || DB_PANELES[0];
         } else {
-            // Para combos grandes, usa paneles de alta potencia
             panelSeleccionado = DB_PANELES.find(p => p.w >= 450);
             totalPaneles = Math.ceil(wattsPanelesRequeridos / panelSeleccionado.w);
         }
 
-        // 4. SELECCIÓN DE CONTROLADOR
         let amperiosControladorReq = (totalPaneles * panelSeleccionado.w) / sysV;
         let esHibrido = inversorSeleccionado.w >= 3000;
         let textoControlador = "";
@@ -328,7 +349,6 @@
             }
         }
 
-        // 5. PROTECCIONES DELIXI/CHINT
         let getBreaker = (amps) => DB_BREAKERS.find(b => b >= amps) || 125;
         let brkPan = getBreaker(amperiosControladorReq * 1.25);
         let brkBat = getBreaker((inversorSeleccionado.w / sysV) * 1.25);
@@ -336,7 +356,6 @@
 
         document.getElementById('sys-volt').innerText = `${sysV}V`;
         
-        // RENDER UI
         document.getElementById('listaCombo').innerHTML = `
             <li><span class="combo-title">⚡ Equipo DC/AC</span>
                 <span class="combo-desc">Sistema de Voltaje a ${sysV}V</span>
@@ -358,7 +377,6 @@
                 <span class="combo-qty">Según metraje en instalación</span></li>
         `;
 
-        // TXT EXPORT
         textoReporteGlobal = 
 `☀️ PRESUPUESTO - ENERGÍA SOLAR ☀️
 
@@ -375,9 +393,9 @@ ${textoCargas}
 - ${totalPaneles}x ${panelSeleccionado.model}
 - ${textoControlador}
 - Protecciones recomendadas: Breaker DC Paneles ${brkPan}A, DC Batería ${brkBat}A, AC Salida ${brkAC}A
-- Accesorios: Cable Solar PV, pares MC4 y cables puente para baterías.
+- Accesorios: Cable Solar PV, pares MC4 y cables puente.
 
-⚠️ Cálculo referencial basado en exigencias. Diseño a la medida con equipos originales del catálogo.`;
+⚠️ Cálculo referencial basado en exigencias.`;
     }
 
     function enviarWA() {
