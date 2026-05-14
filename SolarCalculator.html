@@ -3,15 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Generador de Combos Solares Profesionales</title>
+    <title>Generador de Combos Solares Coherentes</title>
     <style>
         :root {
-            --primary: #0f766e;
-            --secondary: #0d9488;
-            --background: #f0fdfa;
+            --primary: #1e40af;
+            --secondary: #1d4ed8;
+            --background: #f8fafc;
             --surface: #ffffff;
-            --text: #134e4a;
-            --border: #ccfbf1;
+            --text: #0f172a;
+            --border: #e2e8f0;
+            --alert: #f59e0b;
         }
         body { font-family: system-ui, sans-serif; background: var(--background); color: var(--text); margin: 0; padding: 20px; }
         .container { max-width: 1000px; margin: 0 auto; background: var(--surface); padding: 24px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
@@ -23,26 +24,26 @@
         button:hover { background-color: var(--secondary); }
         table { width: 100%; border-collapse: collapse; margin-top: 20px; background: white; }
         th, td { text-align: left; padding: 12px; border-bottom: 1px solid var(--border); }
-        th { background-color: #e0f2fe; }
+        th { background-color: #eff6ff; }
         .delete-btn { background-color: #ef4444; padding: 6px 12px; }
         .combo-panel { margin-top: 32px; padding: 24px; background: white; border: 2px solid var(--primary); border-radius: 8px; }
         .combo-list { list-style: none; padding: 0; margin: 0; }
         .combo-list li { padding: 14px 0; border-bottom: 1px dashed #cbd5e1; display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; }
         .combo-list li:last-child { border-bottom: none; }
         .badge { background: #e2e8f0; padding: 6px 10px; border-radius: 4px; font-size: 0.9rem; font-weight: bold; white-space: nowrap; text-align: right; }
-        .highlight { color: #b45309; font-weight: bold; }
         .sub-text { color: #64748b; font-size: 0.85rem; display: block; margin-top: 4px; line-height: 1.4; }
+        .logic-note { color: var(--alert); font-size: 0.8rem; font-weight: bold; display: block; margin-top: 4px; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h1>Armador de Combos Solares Profesionales</h1>
+    <h1>Armador de Combos Solares - Motor de Coherencia</h1>
     
-    <div class="grid" id="inputForm">
+    <div class="grid">
         <div class="form-group">
-            <label>Equipo</label>
-            <input type="text" id="nombre" placeholder="Ej. PC, Luces">
+            <label>Equipo (Ej. Nevera, PC)</label>
+            <input type="text" id="nombre" placeholder="Nombre del equipo">
         </div>
         <div class="form-group">
             <label>Cantidad</label>
@@ -53,11 +54,11 @@
             <input type="number" id="watts" placeholder="W por unidad">
         </div>
         <div class="form-group">
-            <label>Horas/Día</label>
+            <label>Horas de uso al día</label>
             <input type="number" id="horas" placeholder="1 a 24" max="24">
         </div>
         <div class="form-group" style="justify-content: flex-end;">
-            <button onclick="agregarEquipo()">Añadir a la lista</button>
+            <button onclick="agregarEquipo()">Añadir Carga</button>
         </div>
     </div>
 
@@ -77,10 +78,10 @@
     </table>
 
     <div class="combo-panel" id="panelCombo" style="display: none;">
-        <h2>📦 Despiece del Combo Requerido</h2>
-        <p style="color: #64748b; font-size: 0.9rem;">Calculado para sistema de <span id="sys-volt" class="highlight">12V</span> (Salida a 120V AC).</p>
+        <h2>📦 Configuración Óptima Calculada</h2>
+        <p style="color: #64748b; font-size: 0.9rem;">Parámetros del sistema: <strong id="sys-volt">12V</strong> DC a 120V AC.</p>
         <ul class="combo-list" id="listaCombo">
-            <!-- El combo se genera dinámicamente aquí -->
+            <!-- Dinámico -->
         </ul>
     </div>
 </div>
@@ -88,20 +89,18 @@
 <script>
     let equipos = [];
 
-    // Parámetros técnicos comerciales
+    // Constantes Técnicas Base
     const POTENCIA_PANEL = 550; 
-    const CAPACIDAD_BATERIA_AH = 200; 
-    const VOLTAJE_BATERIA = 12; 
-    const DESCARGA_MAXIMA = 0.5; 
-    const HORAS_SOL = 4.5;
-    const VOLTAJE_AC = 120; // Red eléctrica estándar
+    const BATERIA_AH = 200; 
+    const BATERIA_V = 12; 
+    const DESCARGA_DIARIA_MAX = 0.5; // Profundidad de descarga diaria (50% para Gel)
+    const TASA_DESCARGA_PICO = 0.5; // Factor "C" máximo seguro instantáneo (0.5C)
+    const HORAS_SOL_PICO = 4.5;
     const INVERSORES_COMERCIALES = [1000, 3000, 5000, 8000, 10000];
-    
-    // Capacidades estándar de breakers en Amperios (Comerciales)
-    const BREAKERS_ESTANDAR = [10, 16, 20, 32, 40, 50, 63, 80, 100, 125, 150, 200, 250];
+    const BREAKERS_COMERCIALES = [10, 16, 20, 32, 40, 50, 63, 80, 100, 125, 150, 200, 250];
 
-    function obtenerBreaker(amperiosCalculados) {
-        return BREAKERS_ESTANDAR.find(b => b >= amperiosCalculados) || Math.ceil(amperiosCalculados/50)*50;
+    function obtenerComercial(valor, lista) {
+        return lista.find(item => item >= valor) || (Math.ceil(valor / lista[lista.length-1]) * lista[lista.length-1]);
     }
 
     function agregarEquipo() {
@@ -132,126 +131,104 @@
             tbody.innerHTML += `<tr><td>${eq.nombre}</td><td>${eq.cantidad}</td><td>${eq.watts} W</td><td>${eq.horas} h</td><td>${eq.potenciaPico} W</td><td>${eq.energiaDiaria} Wh</td><td><button class="delete-btn" onclick="eliminarEquipo(${eq.id})">X</button></td></tr>`;
         });
 
-        if (equipos.length > 0) {
-            document.getElementById('panelCombo').style.display = 'block';
-            generarCombo(totalPico, totalDiario);
-        } else {
-            document.getElementById('panelCombo').style.display = 'none';
-        }
+        if (equipos.length > 0) document.getElementById('panelCombo').style.display = 'block';
+        else document.getElementById('panelCombo').style.display = 'none';
+        
+        if (equipos.length > 0) generarCombo(totalPico, totalDiario);
     }
 
     function generarCombo(totalPico, totalDiario) {
-        // 1. INVERSOR Y VOLTAJE DEL SISTEMA
+        // --- 1. COHERENCIA DEL INVERSOR Y VOLTAJE ---
         let inversorMinimo = totalPico * 1.25; 
-        let inversorComercial = INVERSORES_COMERCIALES.find(cap => cap >= inversorMinimo) || (Math.ceil(inversorMinimo / 5000) * 5000); 
+        let inversorW = obtenerComercial(inversorMinimo, INVERSORES_COMERCIALES); 
         
-        let voltajeSistema = 12;
-        if (inversorComercial >= 3000 && inversorComercial < 5000) voltajeSistema = 24;
-        if (inversorComercial >= 5000) voltajeSistema = 48;
+        let sysVolt = 12;
+        if (inversorW >= 2000 && inversorW < 5000) sysVolt = 24;
+        if (inversorW >= 5000) sysVolt = 48;
         
-        // 2. PANELES SOLARES
-        let wattsPanelesRequeridos = (totalDiario / HORAS_SOL) * 1.3; 
+        // --- 2. COHERENCIA DE BATERÍAS (Capacidad vs Tasa de Descarga) ---
+        // A) Baterías necesarias por energía diaria
+        let energiaUtilPorBateria = BATERIA_V * BATERIA_AH * DESCARGA_DIARIA_MAX;
+        let batsPorEnergia = Math.ceil(totalDiario / energiaUtilPorBateria);
+        
+        // B) Baterías necesarias para soportar el JALÓN de corriente del inversor sin dañarse
+        let amperiosMaxInversor = inversorW / sysVolt;
+        let amperajeMaxSoportadoPorRama = BATERIA_AH * TASA_DESCARGA_PICO; // Ej: 200Ah * 0.5 = 100A max por rama
+        let ramasParaleloReq = Math.ceil(amperiosMaxInversor / amperajeMaxSoportadoPorRama);
+        let batsEnSerieReq = sysVolt / BATERIA_V;
+        let batsPorDescarga = ramasParaleloReq * batsEnSerieReq;
+
+        // C) Tomamos el mayor de los dos (Coherencia estricta)
+        let totalBaterias = Math.max(batsPorEnergia, batsPorDescarga);
+        
+        // Forzamos a múltiplos del voltaje del sistema para poder armar el banco
+        totalBaterias = Math.ceil(totalBaterias / batsEnSerieReq) * batsEnSerieReq;
+        if(totalBaterias === 0) totalBaterias = batsEnSerieReq;
+
+        let notaBateria = totalBaterias === batsPorDescarga && batsPorDescarga > batsPorEnergia ? 
+            "⚠️ Banco dimensionado por pico de corriente del inversor, no solo por consumo diario." : 
+            "Dimensionado estándar por consumo diario.";
+
+        // --- 3. COHERENCIA DE PANELES Y CONTROLADOR ---
+        let wattsPanelesRequeridos = (totalDiario / HORAS_SOL_PICO) * 1.3; 
         let cantPaneles = Math.max(1, Math.ceil(wattsPanelesRequeridos / POTENCIA_PANEL));
         
-        // 3. BATERÍAS
-        let energiaUtilPorBateria = VOLTAJE_BATERIA * CAPACIDAD_BATERIA_AH * DESCARGA_MAXIMA;
-        let cantBateriasBase = Math.ceil(totalDiario / energiaUtilPorBateria);
-        let bateriasEnSerie = voltajeSistema / 12;
-        let cantBateriasFinal = Math.ceil(cantBateriasBase / bateriasEnSerie) * bateriasEnSerie;
-        if(cantBateriasFinal === 0) cantBateriasFinal = bateriasEnSerie; 
+        let amperiosControladorMin = Math.ceil((cantPaneles * POTENCIA_PANEL) / sysVolt);
+        let controladorA = obtenerComercial(amperiosControladorMin, [20, 30, 40, 60, 80, 100]);
+        let esHibrido = inversorW >= 3000;
+        
+        let textoControlador = esHibrido ? 
+            `MPPT Integrado en el Inversor (${controladorA}A Req.)` : 
+            `Controlador MPPT Externo de ${controladorA}A`;
 
-        // 4. CONTROLADOR DE CARGA
-        let amperiosControlador = Math.ceil((cantPaneles * POTENCIA_PANEL) / voltajeSistema);
-        let esHibrido = inversorComercial >= 3000;
-        let controladorTexto = esHibrido ? 
-            `Integrado en el Inversor (MPPT)` : 
-            `Controlador Externo de ${obtenerBreaker(amperiosControlador)}A`;
+        // --- 4. PROTECCIONES (BREAKERS) COHERENTES ---
+        let breakerPaneles = obtenerComercial(((cantPaneles * POTENCIA_PANEL) / sysVolt) * 1.25, BREAKERS_COMERCIALES);
+        let breakerBaterias = obtenerComercial((inversorW / sysVolt) * 1.25, BREAKERS_COMERCIALES);
+        let breakerAC = obtenerComercial((inversorW / 120) * 1.25, BREAKERS_COMERCIALES);
 
-        // 5. CÁLCULO DE PROTECCIONES (BREAKERS) Y ATS
-        // Margen de seguridad del 25% para no disparar el breaker en uso continuo
-        
-        // DC Paneles: Amperaje de bajada de paneles al voltaje del sistema
-        let ampsDC_Paneles = (cantPaneles * POTENCIA_PANEL) / voltajeSistema;
-        let breakerPaneles = obtenerBreaker(ampsDC_Paneles * 1.25);
-        
-        // DC Baterías: Máximo consumo del inversor jalando de las baterías
-        let ampsDC_Baterias = inversorComercial / voltajeSistema;
-        let breakerBaterias = obtenerBreaker(ampsDC_Baterias * 1.25);
-        
-        // AC Salida y Transfer Automático: Consumo en corriente alterna (120V)
-        let ampsAC_Salida = inversorComercial / VOLTAJE_AC;
-        let breakerAC = obtenerBreaker(ampsAC_Salida * 1.25);
-        
-        let textoATS = esHibrido ? 
-            `<span class="sub-text">El Inversor Híbrido gestiona automáticamente el cambio Red/Baterías.</span>` : 
-            `<span class="sub-text">Transfer Automático Externo (ATS) de ${breakerAC}A para cambio automático.</span>`;
-
-        document.getElementById('sys-volt').innerText = `${voltajeSistema}V`;
-        
+        document.getElementById('sys-volt').innerText = `${sysVolt}V`;
         const lista = document.getElementById('listaCombo');
+        
         lista.innerHTML = `
             <li>
                 <div>
                     <strong>⚡ Inversor DC/AC</strong>
-                    <span class="sub-text">Onda Senoidal Pura a 120V.</span>
+                    <span class="sub-text">Soporta pico y margen de seguridad de 25%.</span>
                 </div>
-                <div class="badge">1 Und x ${inversorComercial}W</div>
-            </li>
-            <li>
-                <div>
-                    <strong>🔄 Switch de Transferencia (Luz/Solar)</strong>
-                    ${textoATS}
-                </div>
-                <div class="badge">${esHibrido ? 'Integrado' : '1 Und (ATS Externo)'}</div>
+                <div class="badge">${inversorW}W a ${sysVolt}V</div>
             </li>
             <li>
                 <div>
                     <strong>🔋 Banco de Baterías</strong>
-                    <span class="sub-text">Ciclo profundo (${VOLTAJE_BATERIA}V ${CAPACIDAD_BATERIA_AH}Ah). Banco configurado a ${voltajeSistema}V.</span>
+                    <span class="sub-text">Baterías ${BATERIA_V}V ${BATERIA_AH}Ah. Arreglo para ${sysVolt}V.</span>
+                    <span class="logic-note">${notaBateria}</span>
                 </div>
-                <div class="badge">${cantBateriasFinal} Und(s)</div>
+                <div class="badge">${totalBaterias} Und(s)</div>
             </li>
             <li>
                 <div>
                     <strong>☀️ Paneles Solares</strong>
-                    <span class="sub-text">Módulos de alta eficiencia de ${POTENCIA_PANEL}W.</span>
+                    <span class="sub-text">Potencia nominal de ${POTENCIA_PANEL}W para recuperar la energía en ${HORAS_SOL_PICO}h.</span>
                 </div>
                 <div class="badge">${cantPaneles} Und(s)</div>
             </li>
             <li>
                 <div>
                     <strong>🎛️ Controlador de Carga</strong>
-                    <span class="sub-text">Gestiona la energía fotovoltaica.</span>
+                    <span class="sub-text">Coherente con los paneles a ${sysVolt}V.</span>
                 </div>
-                <div class="badge">${controladorTexto}</div>
+                <div class="badge">${textoControlador}</div>
             </li>
             <li>
                 <div>
-                    <strong>🛡️ Breaker DC (Paneles)</strong>
-                    <span class="sub-text">Corte y protección entre paneles y controlador.</span>
+                    <strong>🛡️ Protecciones Integradas (Breakers)</strong>
+                    <span class="sub-text">
+                        • DC Paneles: ${breakerPaneles}A<br>
+                        • DC Baterías: ${breakerBaterias}A<br>
+                        • AC Salida/ATS: ${breakerAC}A
+                    </span>
                 </div>
-                <div class="badge">Breaker DC ${breakerPaneles}A</div>
-            </li>
-            <li>
-                <div>
-                    <strong>🛡️ Breaker DC (Baterías)</strong>
-                    <span class="sub-text">Corte y protección principal del banco de baterías.</span>
-                </div>
-                <div class="badge">Breaker DC ${breakerBaterias}A</div>
-            </li>
-            <li>
-                <div>
-                    <strong>🛡️ Breaker AC (Salida 120V)</strong>
-                    <span class="sub-text">Protección hacia el tablero o cargas de la empresa.</span>
-                </div>
-                <div class="badge">Breaker AC ${breakerAC}A</div>
-            </li>
-            <li>
-                <div>
-                    <strong>🔌 Cableado y Conexiones</strong>
-                    <span class="sub-text">Cable solar especial UV y empalmes.</span>
-                </div>
-                <div class="badge">30m Cable + ${cantPaneles} Par(es) MC4</div>
+                <div class="badge">Kit de 3 Breakers</div>
             </li>
         `;
     }
