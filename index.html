@@ -56,11 +56,12 @@
 
         .combo-price { font-weight: bold; color: var(--primary); font-size: 1rem; min-width: 70px; text-align: right; }
         
-        /* NUEVO: Controles de cantidad editables */
         .qty-container { display: flex; align-items: center; gap: 6px; font-size: 0.85rem; color: #475569; margin-top: 2px; }
-        .qty-input { width: 45px; padding: 4px; border: 1px solid #94a3b8; border-radius: 4px; text-align: center; font-weight: bold; color: var(--primary); background: white; font-size: 0.85rem;}
-        .qty-input:focus { outline: none; border-color: var(--primary); background: #ecfdf5; }
-        .qty-input:disabled { background: #f1f5f9; color: #94a3b8; border-color: transparent; }
+        .qty-input, .price-input { padding: 4px; border: 1px solid #94a3b8; border-radius: 4px; font-weight: bold; color: var(--primary); background: white; font-size: 0.85rem; }
+        .qty-input { width: 45px; text-align: center; }
+        .price-input { width: 75px; text-align: right; }
+        .qty-input:focus, .price-input:focus { outline: none; border-color: var(--primary); background: #ecfdf5; }
+        .qty-input:disabled, .price-input:disabled { background: #f1f5f9; color: #94a3b8; border-color: transparent; }
 
         .total-box { margin-top: 15px; padding: 16px; background: #ecfdf5; border-radius: 8px; text-align: right; border: 1px solid var(--primary); }
         .total-box p { margin: 0 0 5px 0; font-size: 0.9rem; color: #475569; }
@@ -73,6 +74,7 @@
         .btn-clear { background: var(--danger); grid-column: span 2; }
 
         @media print {
+            @page { size: letter; margin: 15mm; }
             body { background: white; padding: 0; color: black; }
             .container { box-shadow: none; border: none; max-width: 100%; }
             .card-form { box-shadow: none; border: none; padding: 0; margin-bottom: 15px; }
@@ -84,9 +86,8 @@
             .total-box h3, .combo-price, h1, .section-title, .results-header h2 { color: black !important; }
             .combo-select { border: none !important; background: transparent !important; appearance: none; -webkit-appearance: none; padding: 0; font-size: 0.95rem; font-weight: 800; color: black; white-space: normal; overflow: visible; }
             
-            /* Ajustes para que la casilla de cantidad parezca texto al imprimir */
-            .qty-input { border: none !important; background: transparent !important; padding: 0; width: auto; font-size: 0.85rem; }
-            .qty-input::-webkit-outer-spin-button, .qty-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+            .qty-input, .price-input { border: none !important; background: transparent !important; padding: 0; width: auto; font-size: 0.85rem; color: black !important; }
+            .qty-input::-webkit-outer-spin-button, .qty-input::-webkit-inner-spin-button, .price-input::-webkit-outer-spin-button, .price-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
         }
     </style>
 </head>
@@ -108,7 +109,10 @@
             </div>
             <div class="form-group">
                 <label>Teléfono (WhatsApp)</label>
-                <input type="tel" id="clienteTelefono" placeholder="Ej. 04141234567" oninput="recalcularFinanzas()">
+                <div style="display: flex; gap: 8px;">
+                    <input type="text" value="+58" disabled style="width: 55px; text-align: center; font-weight: bold; padding: 12px 4px; color: #475569; background: #e2e8f0; border: 1px solid #cbd5e1;">
+                    <input type="tel" id="clienteTelefono" placeholder="Ej. 4141234567" oninput="recalcularFinanzas()">
+                </div>
             </div>
         </div>
     </div>
@@ -151,13 +155,13 @@
             </div>
             <div class="form-group">
                 <label>Watts c/u</label>
-                <input type="number" id="watts" placeholder="W" inputmode="numeric">
+                <input type="number" id="watts" placeholder="W" min="1" inputmode="numeric">
             </div>
         </div>
         <div class="form-row">
             <div class="form-group full">
                 <label>Horas de uso al día</label>
-                <input type="number" id="horas" placeholder="1 a 24 hrs" max="24" inputmode="numeric">
+                <input type="number" id="horas" placeholder="1 a 24 hrs" min="1" max="24" inputmode="numeric">
             </div>
         </div>
         <button class="btn-add" onclick="agregarEquipo()">+ Añadir al Cálculo</button>
@@ -169,10 +173,13 @@
         <div class="results-panel">
             <div class="results-header">
                 <h2>📦 Cotización de Equipos (<span id="sys-volt"></span>)</h2>
-                <div class="date-time" id="fechaEmision">--</div>
+                <div>
+                    <div class="date-time" id="fechaEmision">--</div>
+                    <div style="font-size: 0.75rem; color: #dc2626; text-align: right; font-weight: bold; margin-top: 4px;">Válido por 3 días</div>
+                </div>
             </div>
             
-            <p style="font-size: 0.8rem; color: #64748b; margin-top: -5px; margin-bottom: 15px;">Ajusta los equipos o las unidades manualmente si lo deseas.</p>
+            <p style="font-size: 0.8rem; color: #64748b; margin-top: -5px; margin-bottom: 15px;">Ajusta los equipos o los precios manualmente si lo deseas.</p>
             <ul class="combo-list" id="listaCombo"></ul>
             
             <div class="total-box">
@@ -192,9 +199,8 @@
 <script>
     let equipos = [];
     let textoReporteGlobal = "";
-    
     let reqGlobal = { pico: 0, energia: 0 };
-    let comboCantidades = { inv: 1, bat: 1, pan: 1, ctrl: 1 };
+    let combosInicializados = false;
 
     const catalogoAproximado = {
         "Bombillo LED": 10, "Carga de celular": 15, "Router / Modem": 15, "OLT (Fibra Óptica)": 40,
@@ -206,51 +212,52 @@
     };
 
     const DB_INVERSORES = [
-        { model: "Inversor Onda Modificada 500W", w: 500, v: 12, precio: 80, hibrido: false }, 
-        { model: "Inversor Onda Modificada 1000W", w: 1000, v: 12, precio: 120, hibrido: false },
-        { model: "Inversor Must / Begprod 1.5KW", w: 1500, v: 24, precio: 391, hibrido: false },
-        { model: "Inversor Híbrido Must 3KW", w: 3000, v: 24, precio: 681, hibrido: true },
-        { model: "Inversor Híbrido Begprod 4KW", w: 4000, v: 48, precio: 890, hibrido: true },
-        { model: "Inversor Híbrido Begprod 6KW", w: 6000, v: 48, precio: 1421, hibrido: true },
-        { model: "Inversor Híbrido Must 12KW", w: 12000, v: 48, precio: 3045, hibrido: true }
+        { model: "Inversor Onda Modificada 500W", w: 500, v: 12, precio: 68, hibrido: false }, 
+        { model: "Inversor Onda Modificada 1000W", w: 1000, v: 12, precio: 102, hibrido: false },
+        { model: "Inversor Must / Begprod 1.5KW", w: 1500, v: 24, precio: 332.35, hibrido: false },
+        { model: "Inversor Híbrido Must 3KW", w: 3000, v: 24, precio: 578.85, hibrido: true },
+        { model: "Inversor Híbrido Begprod 4KW", w: 4000, v: 48, precio: 756.5, hibrido: true },
+        { model: "Inversor Híbrido Begprod 6KW", w: 6000, v: 48, precio: 1207.85, hibrido: true },
+        { model: "Inversor Híbrido Must 12KW", w: 12000, v: 48, precio: 2588.25, hibrido: true }
     ];
 
     const DB_BATERIAS = [
-        { model: "MCA 12V 9Ah (GEL)", ah: 9, v: 12, precio: 26 },
-        { model: "MCA 12V 12Ah (GEL)", ah: 12, v: 12, precio: 31 },
-        { model: "MCA 12V 26Ah (GEL)", ah: 26, v: 12, precio: 94 },
-        { model: "MCA 12V 40Ah (GEL)", ah: 40, v: 12, precio: 145 },
-        { model: "MCA 12V 70Ah (GEL)", ah: 70, v: 12, precio: 261 },
-        { model: "MCA 12V 100Ah (GEL)", ah: 100, v: 12, precio: 270 },
-        { model: "MCA 12V 150Ah (GEL)", ah: 150, v: 12, precio: 377 },
-        { model: "MCA 12V 200Ah (GEL)", ah: 200, v: 12, precio: 507 },
-        { model: "MCA 12V 260Ah (GEL)", ah: 260, v: 12, precio: 620 }
+        { model: "MCA 12V 9Ah (GEL)", ah: 9, v: 12, precio: 22.1 },
+        { model: "MCA 12V 12Ah (GEL)", ah: 12, v: 12, precio: 26.35 },
+        { model: "MCA 12V 26Ah (GEL)", ah: 26, v: 12, precio: 79.9 },
+        { model: "MCA 12V 40Ah (GEL)", ah: 40, v: 12, precio: 123.25 },
+        { model: "MCA 12V 70Ah (GEL)", ah: 70, v: 12, precio: 221.85 },
+        { model: "MCA 12V 100Ah (GEL)", ah: 100, v: 12, precio: 229.5 },
+        { model: "MCA 12V 150Ah (GEL)", ah: 150, v: 12, precio: 320.45 },
+        { model: "MCA 12V 200Ah (GEL)", ah: 200, v: 12, precio: 430.95 },
+        { model: "MCA 12V 260Ah (GEL)", ah: 260, v: 12, precio: 527 }
     ];
 
     const DB_PANELES = [
-        { model: "Panel Begprod 25W", w: 25, precio: 26 },
-        { model: "Panel Begprod 50W", w: 50, precio: 40 },
-        { model: "Panel Begprod 100W", w: 100, precio: 70 },
-        { model: "Panel Begprod 160W", w: 160, precio: 95 },
-        { model: "Panel Begprod 300W", w: 300, precio: 159 },
-        { model: "Panel Begprod 450W", w: 450, precio: 215 },
-        { model: "Panel Begprod 585W", w: 585, precio: 290 }
+        { model: "Panel Begprod 25W", w: 25, precio: 22.1 },
+        { model: "Panel Begprod 50W", w: 50, precio: 34 },
+        { model: "Panel Begprod 100W", w: 100, precio: 59.5 },
+        { model: "Panel Begprod 160W", w: 160, precio: 80.75 },
+        { model: "Panel Begprod 300W", w: 300, precio: 135.15 },
+        { model: "Panel Begprod 450W", w: 450, precio: 182.75 },
+        { model: "Panel Begprod 585W", w: 585, precio: 246.5 }
     ];
 
     const DB_CONTROLADORES = [
-        { model: "Controlador PWM 20A", a: 20, precio: 15 },
-        { model: "Controlador PWM 30A", a: 30, precio: 16 },
-        { model: "Controlador PWM 40A", a: 40, precio: 27 },
-        { model: "Controlador MPPT 50A", a: 50, precio: 230 },
-        { model: "Controlador MPPT 60A", a: 60, precio: 210 },
-        { model: "Controlador MPPT 80A", a: 80, precio: 230 },
-        { model: "Controlador MPPT 100A", a: 100, precio: 245 }
+        { model: "Controlador PWM 20A", a: 20, precio: 12.75 },
+        { model: "Controlador PWM 30A", a: 30, precio: 13.6 },
+        { model: "Controlador PWM 40A", a: 40, precio: 22.95 },
+        { model: "Controlador MPPT 50A", a: 50, precio: 195.5 },
+        { model: "Controlador MPPT 60A", a: 60, precio: 178.5 },
+        { model: "Controlador MPPT 80A", a: 80, precio: 195.5 },
+        { model: "Controlador MPPT 100A", a: 100, precio: 208.25 }
     ];
 
     function autoCompletarWatts() {
         const nombreIngresado = document.getElementById('nombre').value;
         if(catalogoAproximado[nombreIngresado]) {
             document.getElementById('watts').value = catalogoAproximado[nombreIngresado];
+            document.getElementById('cantidad').value = '1';
             document.getElementById('horas').focus(); 
         }
     }
@@ -261,7 +268,10 @@
         const watts = parseFloat(document.getElementById('watts').value);
         const horas = parseFloat(document.getElementById('horas').value);
 
-        if (!nombre || isNaN(cantidad) || isNaN(watts) || isNaN(horas)) { alert("Completa los datos de la carga."); return; }
+        if (!nombre || isNaN(cantidad) || cantidad <= 0 || isNaN(watts) || watts <= 0 || isNaN(horas) || horas <= 0) { 
+            alert("Completa los datos de la carga con valores válidos mayores a 0."); 
+            return; 
+        }
 
         equipos.push({ id: Date.now(), nombre, cantidad, watts, horas, pico: cantidad * watts, energia: cantidad * watts * horas });
         
@@ -279,8 +289,17 @@
     function limpiarTodo() {
         if(confirm("¿Seguro que deseas iniciar un nuevo presupuesto?")) {
             equipos = [];
-            document.querySelectorAll('input').forEach(input => input.value = '');
+            // Limpiar solo los campos del formulario de entrada
+            ['clienteNombre', 'clienteCedula', 'clienteTelefono', 'nombre', 'watts', 'horas'].forEach(id => {
+                document.getElementById(id).value = '';
+            });
             document.getElementById('cantidad').value = '1';
+            
+            // Ocultar resultados y resetear estado
+            combosInicializados = false;
+            overrides = { Inversor: false, Bateria: false, Panel: false, Controlador: false };
+            document.getElementById('listaCombo').innerHTML = '';
+            document.getElementById('areaResultados').style.display = 'none';
             actualizarUI();
         }
     }
@@ -318,142 +337,183 @@
         let fechaActual = new Date();
         document.getElementById('fechaEmision').innerHTML = `<strong>Fecha:</strong> ${fechaActual.toLocaleDateString('es-VE')}<br><strong>Hora:</strong> ${fechaActual.toLocaleTimeString('es-VE', { hour: '2-digit', minute: '2-digit' })}`;
 
-        // CREAR LAS LISTAS EN EL HTML (ESTRUCTURA BASE)
-        // CREAR LAS LISTAS EN EL HTML (ESTRUCTURA BASE)
-        let htmlList = `
-            <li>
-                <div class="row-top">
-                    <select id="selInversor" class="combo-select" onchange="recalcularMatematica()"></select>
-                    <span class="combo-price" id="precioInv">$0.00</span>
-                </div>
-                <div class="qty-container">
-                    <input type="number" id="qtyInv" class="qty-input" min="1" value="1" oninput="recalcularFinanzas()">
-                    <span id="labelInv">Und(s) a $0.00 c/u</span>
-                </div>
-            </li>
-            <li>
-                <div class="row-top">
-                    <select id="selBateria" class="combo-select" onchange="recalcularMatematica()"></select>
-                    <span class="combo-price" id="precioBat">$0.00</span>
-                </div>
-                <div class="qty-container">
-                    <input type="number" id="qtyBat" class="qty-input" min="1" value="1" oninput="recalcularFinanzas()">
-                    <span id="labelBat">Und(s) a $0.00 c/u</span>
-                </div>
-            </li>
-            <li>
-                <div class="row-top">
-                    <select id="selPanel" class="combo-select" onchange="recalcularMatematica()"></select>
-                    <span class="combo-price" id="precioPan">$0.00</span>
-                </div>
-                <div class="qty-container">
-                    <input type="number" id="qtyPan" class="qty-input" min="1" value="1" oninput="recalcularFinanzas()">
-                    <span id="labelPan">Und(s) a $0.00 c/u</span>
-                </div>
-            </li>
-            <li>
-                <div class="row-top">
-                    <select id="selControlador" class="combo-select" onchange="recalcularFinanzas()"></select>
-                    <span class="combo-price" id="precioCtrl">$0.00</span>
-                </div>
-                <div class="qty-container">
-                    <input type="number" id="qtyCtrl" class="qty-input" min="0" value="1" oninput="recalcularFinanzas()">
-                    <span id="labelCtrl">Und(s) a $0.00 c/u</span>
-                </div>
-            </li>
-            <li>
-                <div class="row-top">
-                    <span class="combo-select" style="border:none; padding:0; background:transparent;">🛡️ Kit Breakers (DC/AC)</span>
-                    <span class="combo-price" id="precioBrk">$30.00</span>
-                </div>
-                <span style="font-size:0.85rem; color:#475569; margin-top:2px;">1 Kit Completo Referencial</span>
-            </li>
-            <li>
-                <div class="row-top">
-                    <span class="combo-select" style="border:none; padding:0; background:transparent;">🔌 Kit Cables y Conectores MC4</span>
-                    <span class="combo-price" id="precioCab">$60.00</span>
-                </div>
-                <span style="font-size:0.85rem; color:#475569; margin-top:2px;">Material base instalación</span>
-            </li>
-        `;
-        document.getElementById('listaCombo').innerHTML = htmlList;
+        if (!combosInicializados) {
+            // Generar HTML inicial de los combos
+            let htmlList = `
+                <li>
+                    <div class="row-top">
+                        <select id="selInversor" class="combo-select" onchange="cambioSelect('Inversor')"></select>
+                        <span class="combo-price" id="subtotalInv">$0.00</span>
+                    </div>
+                    <div class="qty-container">
+                        <input type="number" id="qtyInv" class="qty-input" min="1" value="1" oninput="recalcularFinanzas()">
+                        <span> Und(s) a $</span>
+                        <input type="number" id="unitPriceInv" class="price-input" min="0" step="0.01" value="0.00" oninput="recalcularFinanzas()">
+                        <span> c/u</span>
+                    </div>
+                </li>
+                <li>
+                    <div class="row-top">
+                        <select id="selBateria" class="combo-select" onchange="cambioSelect('Bateria')"></select>
+                        <span class="combo-price" id="subtotalBat">$0.00</span>
+                    </div>
+                    <div class="qty-container">
+                        <input type="number" id="qtyBat" class="qty-input" min="1" value="1" oninput="recalcularFinanzas()">
+                        <span> Und(s) a $</span>
+                        <input type="number" id="unitPriceBat" class="price-input" min="0" step="0.01" value="0.00" oninput="recalcularFinanzas()">
+                        <span> c/u</span>
+                    </div>
+                </li>
+                <li>
+                    <div class="row-top">
+                        <select id="selPanel" class="combo-select" onchange="cambioSelect('Panel')"></select>
+                        <span class="combo-price" id="subtotalPan">$0.00</span>
+                    </div>
+                    <div class="qty-container">
+                        <input type="number" id="qtyPan" class="qty-input" min="1" value="1" oninput="recalcularFinanzas()">
+                        <span> Und(s) a $</span>
+                        <input type="number" id="unitPricePan" class="price-input" min="0" step="0.01" value="0.00" oninput="recalcularFinanzas()">
+                        <span> c/u</span>
+                    </div>
+                </li>
+                <li>
+                    <div class="row-top">
+                        <select id="selControlador" class="combo-select" onchange="cambioSelect('Controlador')"></select>
+                        <span class="combo-price" id="subtotalCtrl">$0.00</span>
+                    </div>
+                    <div class="qty-container">
+                        <input type="number" id="qtyCtrl" class="qty-input" min="0" value="1" oninput="recalcularFinanzas()">
+                        <span id="labelCtrlText"> Und(s) a $</span>
+                        <input type="number" id="unitPriceCtrl" class="price-input" min="0" step="0.01" value="0.00" oninput="recalcularFinanzas()">
+                        <span id="labelCtrlSuffix"> c/u</span>
+                    </div>
+                </li>
+                <li>
+                    <div class="row-top">
+                        <span class="combo-select" style="border:none; padding:0; background:transparent;">🛡️ Kit Breakers (DC/AC)</span>
+                        <span class="combo-price" id="subtotalBrk">$25.50</span>
+                    </div>
+                    <div class="qty-container">
+                        <input type="number" id="qtyBrk" class="qty-input" min="1" value="1" oninput="recalcularFinanzas()">
+                        <span> Und(s) a $</span>
+                        <input type="number" id="unitPriceBrk" class="price-input" min="0" step="0.01" value="25.50" oninput="recalcularFinanzas()">
+                        <span> c/u</span>
+                    </div>
+                </li>
+                <li>
+                    <div class="row-top">
+                        <span class="combo-select" style="border:none; padding:0; background:transparent;">🔌 Kit Cables y Conectores MC4</span>
+                        <span class="combo-price" id="subtotalCab">$51.00</span>
+                    </div>
+                    <div class="qty-container">
+                        <input type="number" id="qtyCab" class="qty-input" min="1" value="1" oninput="recalcularFinanzas()">
+                        <span> Und(s) a $</span>
+                        <input type="number" id="unitPriceCab" class="price-input" min="0" step="0.01" value="51.00" oninput="recalcularFinanzas()">
+                        <span> c/u</span>
+                    </div>
+                </li>
+            `;
+            document.getElementById('listaCombo').innerHTML = htmlList;
 
-        // Llenar los Selects con las opciones
-        document.getElementById('selInversor').innerHTML = DB_INVERSORES.map((x, i) => `<option value="${i}">⚡ ${x.model}</option>`).join('');
-        document.getElementById('selBateria').innerHTML = DB_BATERIAS.map((x, i) => `<option value="${i}">🔋 ${x.model}</option>`).join('');
-        document.getElementById('selPanel').innerHTML = DB_PANELES.map((x, i) => `<option value="${i}">☀️ ${x.model}</option>`).join('');
-        document.getElementById('selControlador').innerHTML = DB_CONTROLADORES.map((x, i) => `<option value="${i}">🎛️ ${x.model}</option>`).join('');
+            // Llenar selects
+            document.getElementById('selInversor').innerHTML = DB_INVERSORES.map((x, i) => `<option value="${i}">⚡ ${x.model}</option>`).join('');
+            document.getElementById('selBateria').innerHTML = DB_BATERIAS.map((x, i) => `<option value="${i}">🔋 ${x.model}</option>`).join('');
+            document.getElementById('selPanel').innerHTML = DB_PANELES.map((x, i) => `<option value="${i}">☀️ ${x.model}</option>`).join('');
+            document.getElementById('selControlador').innerHTML = DB_CONTROLADORES.map((x, i) => `<option value="${i}">🎛️ ${x.model}</option>`).join('');
 
-        // Selección Inicial de Equipos Ideales
+            combosInicializados = true;
+        }
+
+        // ── Selección automática siempre que cambian las cargas ──
+
+        // Inversor: más pequeño que cubra el pico × 1.25
         let picoReq = tPico * 1.25;
-        let invIdx = DB_INVERSORES.findIndex(inv => inv.w >= picoReq);
-        if(invIdx === -1) invIdx = DB_INVERSORES.length - 1;
+        let invIdx = DB_INVERSORES.findIndex(x => x.w >= picoReq);
+        if (invIdx === -1) invIdx = DB_INVERSORES.length - 1;
         document.getElementById('selInversor').value = invIdx;
-        
         let sysV = DB_INVERSORES[invIdx].v;
-        let whReq = tEnergia / (tEnergia < 1000 ? 0.8 : 0.5);
-        let ahReq = whReq / sysV;
-        
-        let batIdx = DB_BATERIAS.findIndex(bat => bat.ah >= (ahReq * 0.9));
-        if(batIdx === -1) batIdx = DB_BATERIAS.length - 1;
+
+        // Batería: Ah necesarios al voltaje del sistema, elegir el más pequeño que los cubra
+        let efic = tEnergia < 1000 ? 0.8 : 0.5;
+        let ahReq = (tEnergia / efic) / sysV;
+        let batIdx = DB_BATERIAS.findIndex(x => x.ah >= ahReq);
+        if (batIdx === -1) batIdx = DB_BATERIAS.length - 1;
         document.getElementById('selBateria').value = batIdx;
 
-        let capTotalWh = DB_BATERIAS[batIdx].ah * sysV;
-        let wPanReq = Math.max((tEnergia / 4.5), (capTotalWh / 8)) * (tEnergia < 1000 ? 1.2 : 1.3);
-        
-        let panIdx = DB_PANELES.findIndex(p => p.w >= (wPanReq * 0.85));
-        if (panIdx === -1) {
-            panIdx = DB_PANELES.findIndex(p => p.w >= 450);
-            if(panIdx === -1) panIdx = DB_PANELES.length - 1;
-        }
+        // Panel: más pequeño que cubra el requisito de generación
+        let capWh0 = DB_BATERIAS[batIdx].ah * sysV;
+        let wReq0  = Math.max(tEnergia / 4.5, capWh0 / 8) * (tEnergia < 1000 ? 1.2 : 1.3);
+        let panIdx = DB_PANELES.findIndex(x => x.w >= wReq0);
+        if (panIdx === -1) panIdx = DB_PANELES.length - 1;
         document.getElementById('selPanel').value = panIdx;
 
-        // Arranca la matemática para calcular las Unidades (Inputs) en base a lo seleccionado
-        recalcularMatematica();
+        calcularCantidades();
     }
 
-    // Se dispara cuando se cambia una OPCIÓN en los Desplegables. Sugiere nuevas cantidades.
-    function recalcularMatematica() {
-        let tPico = reqGlobal.pico;
-        let tEnergia = reqGlobal.energia;
-        
-        let inv = DB_INVERSORES[document.getElementById('selInversor').value];
-        let bat = DB_BATERIAS[document.getElementById('selBateria').value];
-        let pan = DB_PANELES[document.getElementById('selPanel').value];
+    // Al cambiar un combo manualmente: poner qty=1, precio nuevo, recalcular total
+    function cambioSelect(tipo) {
+        const mapa = { Inversor:'Inv', Bateria:'Bat', Panel:'Pan', Controlador:'Ctrl' };
+        const sf   = mapa[tipo];
+        const idx  = parseInt(document.getElementById('sel' + tipo).value);
+        const DB   = { Inversor: DB_INVERSORES, Bateria: DB_BATERIAS, Panel: DB_PANELES, Controlador: DB_CONTROLADORES };
+        const item = DB[tipo][idx];
 
-        let sysV = inv.v;
-        document.getElementById('sys-volt').innerText = `${sysV}V`;
+        document.getElementById('qty'       + sf).value         = 1;
+        document.getElementById('unitPrice' + sf).value         = item.precio.toFixed(2);
+        document.getElementById('subtotal'  + sf).innerText     = '$' + item.precio.toFixed(2);
 
-        // Cantidad Inversores
-        let cInv = Math.max(1, Math.ceil((tPico * 1.25 * 0.95) / inv.w));
-        document.getElementById('qtyInv').value = cInv;
+        recalcularFinanzas();   // actualiza gran total con los valores actuales de todos
+    }
 
-        // Cantidad Baterías
-        let whReq = tEnergia / (tEnergia < 1000 ? 0.8 : 0.5);
-        let cBatParalelo = Math.max(1, Math.ceil(((whReq / sysV) * 0.9) / bat.ah));
-        document.getElementById('qtyBat').value = cBatParalelo * (sysV / 12);
-
-        // Cantidad Paneles
-        let capWh = document.getElementById('qtyBat').value * bat.ah * 12; // Energía total del banco
-        let wPanReq = Math.max((tEnergia / 4.5), (capWh / 8)) * (tEnergia < 1000 ? 1.2 : 1.3);
-        let cPan = Math.max(1, Math.ceil((wPanReq * 0.85) / pan.w));
-        document.getElementById('qtyPan').value = cPan;
-
-        // Ajuste Controlador
-        if (!inv.hibrido) {
-            let ampReq = (cPan * pan.w) / sysV;
-            let ctrlIdx = DB_CONTROLADORES.findIndex(c => c.a >= ampReq);
-            if (ctrlIdx === -1) ctrlIdx = DB_CONTROLADORES.length - 1;
-            document.getElementById('selControlador').value = ctrlIdx;
-            let cCtrl = Math.max(1, Math.ceil((ampReq * 0.95) / DB_CONTROLADORES[ctrlIdx].a));
-            document.getElementById('qtyCtrl').value = cCtrl;
-        }
-
-        // Calcula finanzas con estas nuevas cantidades sugeridas
+    // Al editar qty manualmente: solo recalcula el total
+    function qtyManualChange() {
         recalcularFinanzas();
     }
 
-    // Se dispara cuando cambian las cantidades manualmente o después de recalcular Matemática. 
+    function calcularCantidades() {
+        const inv = DB_INVERSORES[document.getElementById('selInversor').value];
+        const bat = DB_BATERIAS[document.getElementById('selBateria').value];
+        const pan = DB_PANELES[document.getElementById('selPanel').value];
+        const sysV = inv.v;
+        document.getElementById('sys-volt').innerText = `${sysV}V`;
+
+        let efic = reqGlobal.energia < 1000 ? 0.8 : 0.5;
+        let ahReq = (reqGlobal.energia / efic) / sysV;
+
+        // Inversores: cuántos se necesitan para cubrir el pico
+        let cInv = Math.max(1, Math.ceil((reqGlobal.pico * 1.25) / inv.w));
+        document.getElementById('qtyInv').value = cInv;
+
+        // Baterías: en serie para voltaje + en paralelo para Ah
+        let enSerie    = Math.round(sysV / bat.v);          // ej: 48V/12V = 4
+        let enParalelo = Math.max(1, Math.ceil(ahReq / bat.ah));
+        document.getElementById('qtyBat').value = enSerie * enParalelo;
+
+        // Paneles: watts necesarios dividido entre la potencia del panel elegido
+        let capWh  = enParalelo * bat.ah * sysV;
+        let wReq   = Math.max(reqGlobal.energia / 4.5, capWh / 8) * (reqGlobal.energia < 1000 ? 1.2 : 1.3);
+        let cPan   = Math.max(1, Math.ceil(wReq / pan.w));
+        document.getElementById('qtyPan').value = cPan;
+
+        // Precios iniciales desde el catálogo
+        document.getElementById('unitPriceInv').value  = inv.precio.toFixed(2);
+        document.getElementById('unitPriceBat').value  = bat.precio.toFixed(2);
+        document.getElementById('unitPricePan').value  = pan.precio.toFixed(2);
+
+        // Controlador (solo si no es híbrido)
+        if (!inv.hibrido) {
+            let ampReq   = Math.ceil((cPan * pan.w) / sysV * 1.1);
+            let ctrlIdx  = DB_CONTROLADORES.findIndex(c => c.a >= ampReq);
+            if (ctrlIdx === -1) ctrlIdx = DB_CONTROLADORES.length - 1;
+            let cCtrl = Math.max(1, Math.ceil(ampReq / DB_CONTROLADORES[ctrlIdx].a));
+            document.getElementById('selControlador').value   = ctrlIdx;
+            document.getElementById('qtyCtrl').value          = cCtrl;
+            document.getElementById('unitPriceCtrl').value    = DB_CONTROLADORES[ctrlIdx].precio.toFixed(2);
+        }
+
+        recalcularFinanzas();
+    }
+
     function recalcularFinanzas() {
         let inv = DB_INVERSORES[document.getElementById('selInversor').value];
         let bat = DB_BATERIAS[document.getElementById('selBateria').value];
@@ -463,45 +523,60 @@
         let qInv = parseInt(document.getElementById('qtyInv').value) || 0;
         let qBat = parseInt(document.getElementById('qtyBat').value) || 0;
         let qPan = parseInt(document.getElementById('qtyPan').value) || 0;
+        let qCtrl = parseInt(document.getElementById('qtyCtrl').value) || 0;
+        let qBrk = parseInt(document.getElementById('qtyBrk').value) || 0;
+        let qCab = parseInt(document.getElementById('qtyCab').value) || 0;
+
+        let pInv = parseFloat(document.getElementById('unitPriceInv').value) || 0;
+        let pBat = parseFloat(document.getElementById('unitPriceBat').value) || 0;
+        let pPan = parseFloat(document.getElementById('unitPricePan').value) || 0;
+        let pCtrl = parseFloat(document.getElementById('unitPriceCtrl').value) || 0;
+        let pBrk = parseFloat(document.getElementById('unitPriceBrk').value) || 0;
+        let pCab = parseFloat(document.getElementById('unitPriceCab').value) || 0;
         
-        let subInv = qInv * inv.precio;
-        let subBat = qBat * bat.precio;
-        let subPan = qPan * pan.precio;
-        
-        let subCtrl = 0;
+        let subInv = qInv * pInv;
+        let subBat = qBat * pBat;
+        let subPan = qPan * pPan;
+        let subBrk = qBrk * pBrk;
+        let subCab = qCab * pCab;
+
+        document.getElementById('subtotalInv').innerText = `$${subInv.toFixed(2)}`;
+        document.getElementById('subtotalBat').innerText = `$${subBat.toFixed(2)}`;
+        document.getElementById('subtotalPan').innerText = `$${subPan.toFixed(2)}`;
+        document.getElementById('subtotalBrk').innerText = `$${subBrk.toFixed(2)}`;
+        document.getElementById('subtotalCab').innerText = `$${subCab.toFixed(2)}`;
+
         let qCtrlInput = document.getElementById('qtyCtrl');
-
-        document.getElementById('labelInv').innerText = `Und(s) a $${inv.precio.toFixed(2)} c/u`;
-        document.getElementById('precioInv').innerText = `$${subInv.toFixed(2)}`;
-
-        document.getElementById('labelBat').innerText = `Und(s) a $${bat.precio.toFixed(2)} c/u`;
-        document.getElementById('precioBat').innerText = `$${subBat.toFixed(2)}`;
-
-        document.getElementById('labelPan').innerText = `Und(s) a $${pan.precio.toFixed(2)} c/u`;
-        document.getElementById('precioPan').innerText = `$${subPan.toFixed(2)}`;
+        let pCtrlInput = document.getElementById('unitPriceCtrl');
+        let selCtrl = document.getElementById('selControlador');
+        let subCtrl = 0;
 
         if (inv.hibrido) {
             qCtrlInput.value = 0;
+            pCtrlInput.value = "0.00";
             qCtrlInput.disabled = true;
-            document.getElementById('selControlador').disabled = true;
-            document.getElementById('labelCtrl').innerText = `Ahorro (Híbrido Integrado)`;
-            document.getElementById('precioCtrl').innerText = `$0.00`;
+            pCtrlInput.disabled = true;
+            selCtrl.disabled = true;
+            document.getElementById('labelCtrlText').innerText = ` Ahorro (Híbrido Integrado)`;
+            document.getElementById('labelCtrlSuffix').style.display = 'none';
+            document.getElementById('subtotalCtrl').innerText = `$0.00`;
         } else {
             qCtrlInput.disabled = false;
-            document.getElementById('selControlador').disabled = false;
-            let qCtrl = parseInt(qCtrlInput.value) || 0;
-            subCtrl = qCtrl * ctrl.precio;
-            document.getElementById('labelCtrl').innerText = `Und(s) a $${ctrl.precio.toFixed(2)} c/u`;
-            document.getElementById('precioCtrl').innerText = `$${subCtrl.toFixed(2)}`;
+            pCtrlInput.disabled = false;
+            selCtrl.disabled = false;
+            subCtrl = qCtrl * pCtrl;
+            document.getElementById('labelCtrlText').innerText = ` Und(s) a $`;
+            document.getElementById('labelCtrlSuffix').style.display = 'inline';
+            document.getElementById('subtotalCtrl').innerText = `$${subCtrl.toFixed(2)}`;
         }
 
-        let granTotal = subInv + subBat + subPan + subCtrl + 30 + 60;
+        let granTotal = subInv + subBat + subPan + subCtrl + subBrk + subCab;
         document.getElementById('granTotal').innerText = granTotal.toFixed(2);
 
-        actualizarReporteWA(qInv, inv, qBat, bat, qPan, pan, parseInt(qCtrlInput.value)||0, ctrl, granTotal);
+        actualizarReporteWA(qInv, inv, pInv, qBat, bat, pBat, qPan, pan, pPan, qCtrl, ctrl, pCtrl, qBrk, pBrk, qCab, pCab, granTotal);
     }
 
-    function actualizarReporteWA(qInv, inv, qBat, bat, qPan, pan, qCtrl, ctrl, granTotal) {
+    function actualizarReporteWA(qInv, inv, pInv, qBat, bat, pBat, qPan, pan, pPan, qCtrl, ctrl, pCtrl, qBrk, pBrk, qCab, pCab, granTotal) {
         if(equipos.length === 0) return;
 
         let cNom = document.getElementById('clienteNombre').value || "No especificado";
@@ -511,11 +586,11 @@
         let sysV = document.getElementById('sys-volt').innerText;
 
         let txtCargas = equipos.map(eq => `- ${eq.cantidad}x ${eq.nombre} (${eq.watts}W, ${eq.horas}h)`).join('\n');
-        let lCtrl = inv.hibrido ? "- Controlador MPPT/PWM (Integrado en Inversor)" : `- ${qCtrl}x ${ctrl.model} ($${(qCtrl * ctrl.precio).toFixed(2)})`;
+        let lCtrl = inv.hibrido ? "- Controlador MPPT/PWM (Integrado en Inversor)" : `- ${qCtrl}x ${ctrl.model} ($${(qCtrl * pCtrl).toFixed(2)})`;
 
-        textoReporteGlobal = 
 `☀️ PRESUPUESTO - ENERGÍA SOLAR ☀️
 Emisión: ${fec}
+⚠️ Válido por 3 días
 
 👤 DATOS DEL CLIENTE
 Nombre: ${cNom}
@@ -525,12 +600,12 @@ Teléfono: ${cTel}
 📋 EQUIPOS A RESPALDAR:
 ${txtCargas}
 📦 COTIZACIÓN (Sistema ${sysV}):
-- ${qInv}x ${inv.model} ($${(qInv * inv.precio).toFixed(2)})
-- ${qBat}x ${bat.model} ($${(qBat * bat.precio).toFixed(2)})
-- ${qPan}x ${pan.model} ($${(qPan * pan.precio).toFixed(2)})
+- ${qInv}x ${inv.model} ($${(qInv * pInv).toFixed(2)})
+- ${qBat}x ${bat.model} ($${(qBat * pBat).toFixed(2)})
+- ${qPan}x ${pan.model} ($${(qPan * pPan).toFixed(2)})
 ${lCtrl}
-- Kit Protecciones y Breakers ($30.00)
-- Kit Cables y Conectores MC4 ($60.00)
+- ${qBrk}x Kit Protecciones y Breakers ($${(qBrk * pBrk).toFixed(2)})
+- ${qCab}x Kit Cables y Conectores MC4 ($${(qCab * pCab).toFixed(2)})
 
 💰 GRAN TOTAL: $${granTotal.toFixed(2)}
 (Monto exento de instalación)`;
@@ -538,7 +613,12 @@ ${lCtrl}
 
     function enviarWA() {
         let telLimpio = document.getElementById('clienteTelefono').value.replace(/\D/g, '');
-        if(telLimpio.startsWith('0')) telLimpio = '58' + telLimpio.substring(1);
+        
+        // Quitar el 0 inicial si lo pusieron (0414 -> 414)
+        if(telLimpio.startsWith('0')) telLimpio = telLimpio.substring(1);
+        // Agregar 58 si no lo tiene
+        if(telLimpio.length > 0 && !telLimpio.startsWith('58')) telLimpio = '58' + telLimpio;
+
         let url = telLimpio.length >= 10 ? 
             `https://wa.me/${telLimpio}?text=${encodeURIComponent(textoReporteGlobal)}` : 
             `https://wa.me/?text=${encodeURIComponent(textoReporteGlobal)}`;
@@ -548,3 +628,4 @@ ${lCtrl}
 
 </body>
 </html>
+
